@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invictus Construction Sarnia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.4.3/dist/umd/react-router-dom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-beautiful-dnd@13.1.1/dist/react-beautiful-dnd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { BrowserRouter, Routes, Route, Link, useNavigate, useParams } = ReactRouterDOM;
+    const { DragDropContext, Droppable, Draggable } = ReactBeautifulDnd;
+
+    // Utility to generate UUID
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    // Login Component
+    const Login = ({ setAuthenticated }) => {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const navigate = useNavigate();
+
+      const handleLogin = (e) => {
+        e.preventDefault();
+        if (username === 'admin' && password === 'password') {
+          localStorage.setItem('auth', 'true');
+          setAuthenticated(true);
+          navigate('/home');
+        } else {
+          alert('Invalid credentials');
+        }
+      };
+
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold mb-4">Login</h2>
+            <form onSubmit={handleLogin}>
+              <input
+                type="text"
+                placeholder="Username"
+                className="w-full p-2 mb-4 bg-gray-700 rounded"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                className="w-full p-2 mb-4 bg-gray-700 rounded"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button type="submit" className="w-full p-2 bg-blue-700 rounded hover:bg-blue-600">
+                Login
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // Editable Table Component
+    const EditableTable = ({ data, setData, columns, presets }) => {
+      const [newRow, setNewRow] = useState({});
+      const [editingRow, setEditingRow] = useState(null);
+
+      const handleAddRow = () => {
+        if (Object.values(newRow).every(val => val)) {
+          setData([...data, { id: generateUUID(), ...newRow }]);
+          setNewRow({});
+        }
+      };
+
+      const handleEditRow = (row) => {
+        setEditingRow(row);
+      };
+
+      const handleSaveEdit = () => {
+        setData(data.map(item => item.id === editingRow.id ? editingRow : item));
+        setEditingRow(null);
+      };
+
+      const handleDeleteRow = (id) => {
+        setData(data.filter(item => item.id !== id));
+      };
+
+      const handleColumnChange = (key, value, isNew = false) => {
+        if (isNew) {
+          setNewRow({ ...newRow, [key]: value });
+        } else {
+          setEditingRow({ ...editingRow, [key]: value });
+        }
+      };
+
+      return (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-gray-800 rounded">
+            <thead>
+              <tr>
+                {columns.map(col => (
+                  <th key={col.key} className="p-2 text-left">{col.label}</th>
+                ))}
+                <th className="p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(row => (
+                <tr key={row.id}>
+                  {columns.map(col => (
+                    <td key={col.key} className="p-2">
+                      {editingRow && editingRow.id === row.id ? (
+                        col.options ? (
+                          <select
+                            className="p-1 bg-gray-700 rounded"
+                            value={editingRow[col.key] || ''}
+                            onChange={(e) => handleColumnChange(col.key, e.target.value)}
+                          >
+                            {col.options.map(opt => (
+                              <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.color }}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            className="p-1 bg-gray-700 rounded"
+                            value={editingRow[col.key] || ''}
+                            onChange={(e) => handleColumnChange(col.key, e.target.value)}
+                          />
+                        )
+                      ) : (
+                        <span style={{ color: col.options?.find(opt => opt.value === row[col.key])?.color }}>
+                          {row[col.key]}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                  <td className="p-2">
+                    {editingRow && editingRow.id === row.id ? (
+                      <button onClick={handleSaveEdit} className="p-1 bg-green-600 rounded mr-2">Save</button>
+                    ) : (
+                      <button onClick={() => handleEditRow(row)} className="p-1 bg-blue-600 rounded mr-2">Edit</button>
+                    )}
+                    <button onClick={() => handleDeleteRow(row.id)} className="p-1 bg-red-600 rounded">Delete</button>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                {columns.map(col => (
+                  <td key={col.key} className="p-2">
+                    {col.options ? (
+                      <select
+                        className="p-1 bg-gray-700 rounded"
+                        value={newRow[col.key] || ''}
+                        onChange={(e) => handleColumnChange(col.key, e.target.value, true)}
+                      >
+                        <option value="">Select</option>
+                        {col.options.map(opt => (
+                          <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.color }}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="p-1 bg-gray-700 rounded"
+                        value={newRow[col.key] || ''}
+                        onChange={(e) => handleColumnChange(col.key, e.target.value, true)}
+                      />
+                    )}
+                  </td>
+                ))}
+                <td className="p-2">
+                  <button onClick={handleAddRow} className="p-1 bg-blue-700 rounded">Add</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
+    // Schedule Component
+    const Schedule = ({ jobs }) => {
+      return (
+        <div className="bg-gray-800 p-4 rounded h-full overflow-y-auto">
+          <h3 className="text-lg font-bold mb-4">Schedule</h3>
+          <div className="space-y-4">
+            {jobs.map(job => (
+              <div key={job.id} className="bg-gray-700 p-2 rounded">
+                <p className="font-bold">{job.name}</p>
+                <p className="text-sm">Start: {job.startDate}</p>
+                <p className="text-sm">End: {job.endDate}</p>
+                <div className="mt-2">
+                  <div className="h-2 bg-gray-600 rounded">
+                    <div
+                      className="h-2 bg-blue-600 rounded"
+                      style={{ width: `${job.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Job Page Component
+    const JobPage = () => {
+      const { jobId } = useParams();
+      const [jobs, setJobs] = useState(JSON.parse(localStorage.getItem('jobs')) || []);
+      const job = jobs.find(j => j.id === jobId) || {};
+      const [layout, setLayout] = useState([
+        { id: 'revenue', type: 'table' },
+        { id: 'expenses', type: 'table' },
+        { id: 'scope', type: 'text' },
+        { id: 'quote', type: 'text' },
+      ]);
+      const [revenueData, setRevenueData] = useState(job.revenue || []);
+      const [expensesData, setExpensesData] = useState(job.expenses || []);
+      const [scope, setScope] = useState(job.scope || '');
+      const [quote, setQuote] = useState(job.quote || '');
+      const [scopeImage, setScopeImage] = useState(job.scopeImage || null);
+      const [quoteImage, setQuoteImage] = useState(job.quoteImage || null);
+
+      useEffect(() => {
+        const updatedJobs = jobs.map(j =>
+          j.id === jobId
+            ? { ...j, revenue: revenueData, expenses: expensesData, scope, quote, scopeImage, quoteImage }
+            : j
+        );
+        localStorage.setItem('jobs', JSON.stringify(updatedJobs));
+      }, [revenueData, expensesData, scope, quote, scopeImage, quoteImage]);
+
+      const onDragEnd = (result) => {
+        if (!result.destination) return;
+        const reorderedLayout = [...layout];
+        const [moved] = reorderedLayout.splice(result.source.index, 1);
+        reorderedLayout.splice(result.destination.index, 0, moved);
+        setLayout(reorderedLayout);
+      };
+
+      const handleImageUpload = (e, setImage) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => setImage(reader.result);
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const revenueColumns = [
+        { key: 'date', label: 'Date' },
+        { key: 'purchase', label: 'Purchase' },
+        { key: 'method', label: 'Method', options: [
+          { value: 'Cash', label: 'Cash', color: '#4CAF50' },
+          { value: 'Credit', label: 'Credit', color: '#2196F3' },
+          { value: 'Check', label: 'Check', color: '#FFC107' },
+        ]},
+        { key: 'cost', label: 'Cost' },
+        { key: 'location', label: 'Location' },
+      ];
+
+      const expensesColumns = [
+        { key: 'date', label: 'Date' },
+        { key: 'purchase', label: 'Purchase' },
+        { key: 'method', label: 'Method', options: [
+          { value: 'Cash', label: 'Cash', color: '#4CAF50' },
+          { value: 'Credit', label: 'Credit', color: '#2196F3' },
+          { value: 'Check', label: 'Check', color: '#FFC107' },
+        ]},
+        { key: 'cost', label: 'Cost' },
+        { key: 'location', label: 'Location' },
+      ];
+
+      const renderSection = (section) => {
+        switch (section.id) {
+          case 'revenue':
+            return (
+              <div className="bg-gray-800 p-4 rounded">
+                <h3 className="text-lg font-bold mb-2">Revenue</h3>
+                <EditableTable data={revenueData} setData={setRevenueData} columns={revenueColumns} />
+              </div>
+            );
+          case 'expenses':
+            return (
+              <div className="bg-gray-800 p-4 rounded">
+                <h3 className="text-lg font-bold mb-2">Expenses</h3>
+                <EditableTable data={expensesData} setData={setExpensesData} columns={expensesColumns} />
+              </div>
+            );
+          case 'scope':
+            return (
+              <div className="bg-gray-800 p-4 rounded">
+                <h3 className="text-lg font-bold mb-2">Job Scope</h3>
+                {scopeImage ? (
+                  <div>
+                    <img src={scopeImage} alt="Scope" className="max-w-full h-auto mb-2" />
+                    <button
+                      onClick={() => setScopeImage(null)}
+                      className="p-1 bg-red-600 rounded"
+                    >
+                      Remove Image
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <textarea
+                      className="w-full p-2 bg-gray-700 rounded mb-2"
+                      value={scope}
+                      onChange={(e) => setScope(e.target.value)}
+                      rows="5"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, setScopeImage)}
+                      className="mb-2"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          case 'quote':
+            return (
+              <div className="bg-gray-800 p-4 rounded">
+                <h3 className="text-lg font-bold mb-2">Job Quote</h3>
+                {quoteImage ? (
+                  <div>
+                    <img src={quoteImage} alt="Quote" className="max-w-full h-auto mb-2" />
+                    <button
+                      onClick={() => setQuoteImage(null)}
+                      className="p-1 bg-red-600 rounded"
+                    >
+                      Remove Image
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <textarea
+                      className="w-full p-2 bg-gray-700 rounded mb-2"
+                      value={quote}
+                      onChange={(e) => setQuote(e.target.value)}
+                      rows="5"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, setQuoteImage)}
+                      className="mb-2"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          default:
+            return null;
+        }
+      };
+
+      return (
+        <div className="max-w-7xl mx-auto p-4">
+          <h2 className="text-2xl font-bold mb-4">{job.name}</h2>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="layout">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                  {layout.map((section, index) => (
+                    <Draggable key={section.id} draggableId={section.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="border border-gray-700 rounded"
+                        >
+                          {renderSection(section)}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        </div>
+      );
+    };
+
+    // Home Page Component
+    const Home = () => {
+      const [jobs, setJobs] = useState(JSON.parse(localStorage.getItem('jobs')) || []);
+      const [newJob, setNewJob] = useState({});
+      const [logo, setLogo] = useState(localStorage.getItem('logo') || null);
+
+      useEffect(() => {
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+      }, [jobs]);
+
+      const handleAddJob = () => {
+        if (Object.values(newJob).every(val => val)) {
+          setJobs([...jobs, { id: generateUUID(), ...newJob, revenue: [], expenses: [], scope: '', quote: '' }]);
+          setNewJob({});
+        }
+      };
+
+      const handleDeleteJob = (id) => {
+        setJobs(jobs.filter(job => job.id !== id));
+      };
+
+      const handleLogoUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setLogo(reader.result);
+            localStorage.setItem('logo', reader.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const columns = [
+        { key: 'name', label: 'Job Name' },
+        { key: 'address', label: 'Address' },
+        { key: 'progress', label: 'Progress (%)', options: [
+          { value: '0', label: '0%', color: '#EF4444' },
+          { value: '25', label: '25%', color: '#F59E0B' },
+          { value: '50', label: '50%', color: '#3B82F6' },
+          { value: '75', label: '75%', color: '#10B981' },
+          { value: '100', label: '100%', color: '#4CAF50' },
+        ]},
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'endDate', label: 'End Date' },
+      ];
+
+      return (
+        <div className="flex">
+          <div className="flex-1 max-w-7xl mx-auto p-4">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center">
+                {logo ? (
+                  <img src={logo} alt="Logo" className="h-12 mr-4" />
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="mb-4"
+                  />
+                )}
+                <h2 className="text-2xl font-bold">Upcoming Jobs</h2>
+              </div>
+            </div>
+            <EditableTable data={jobs} setData={setJobs} columns={columns} />
+            <div className="mt-4">
+              {jobs.map(job => (
+                <Link
+                  key={job.id}
+                  to={`/job/${job.id}`}
+                  className="block p-2 bg-blue-700 rounded mb-2 hover:bg-blue-600"
+                >
+                  View {job.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="w-1/4 p-4">
+            <Schedule jobs={jobs} />
+          </div>
+        </div>
+      );
+    };
+
+    // App Component
+    const App = () => {
+      const [authenticated, setAuthenticated] = useState(localStorage.getItem('auth') === 'true');
+
+      return (
+        <BrowserRouter>
+          <nav className="bg-blue-900 text-white fixed w-full top-0 z-10 shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between h-16">
+                <div className="flex items-center">
+                  <h1 className="text-xl font-bold">Invictus Construction Sarnia</h1>
+                </div>
+                {authenticated && (
+                  <div className="flex items-center space-x-4">
+                    <Link to="/home" className="hover:text-gray-300">Home</Link>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('auth');
+                        setAuthenticated(false);
+                      }}
+                      className="hover:text-gray-300"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </nav>
+          <div className="pt-16">
+            <Routes>
+              <Route path="/" element={authenticated ? <Home /> : <Login setAuthenticated={setAuthenticated} />} />
+              <Route path="/home" element={authenticated ? <Home /> : <Login setAuthenticated={setAuthenticated} />} />
+              <Route path="/job/:jobId" element={authenticated ? <JobPage /> : <Login setAuthenticated={setAuthenticated} />} />
+            </Routes>
+          </div>
+        </BrowserRouter>
+      );
+    };
+
+    // Render App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
