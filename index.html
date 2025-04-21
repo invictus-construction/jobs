@@ -9,10 +9,10 @@
     body { background-color: #ffffff; color: #1f2937; font-family: sans-serif; }
     .draggable { cursor: move; }
     .draggable.dragging { opacity: 0.5; }
-    .calendar-day { min-height: 100px; border: 1px solid #e5e7eb; padding: 4px; }
+    .calendar-day { min-h-[80px] sm:min-h-[100px] border: 1px solid #e5e7eb; padding: 4px; }
     .calendar-day.today { background-color: #e0f2fe; }
     .editable:hover { background-color: #f3f4f6; }
-    .progress-select { min-width: 120px; }
+    .progress-select { min-width: 150px; }
   </style>
 </head>
 <body class="min-h-screen pt-16">
@@ -52,8 +52,8 @@
   </div>
 
   <!-- Home Page -->
-  <div id="home-page" class="max-w-7xl mx-auto p-2 flex hidden">
-    <div class="flex-1 mr-4">
+  <div id="home-page" class="mx-auto p-1 px-2 sm:max-w-7xl flex flex-col sm:flex-row hidden">
+    <div class="w-full sm:flex-1 sm:mr-4 mb-4 sm:mb-0">
       <div class="flex justify-between items-center mb-4">
         <div class="flex items-center">
           <div id="logo-container" class="mr-4">
@@ -101,14 +101,14 @@
           <button id="add-progress-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
         </div>
         <div>
-          <h4 class="font-bold">Location Presets</h4>
-          <div id="location-presets" class="mb-2"></div>
-          <input id="location-value" placeholder="Location" class="p-1 bg-white rounded border border-gray-300 mr-2" />
-          <button id="add-location-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
+          <h4 class="font-bold">Vendor/Supplier Presets</h4>
+          <div id="vendor-presets" class="mb-2"></div>
+          <input id="vendor-value" placeholder="Vendor/Supplier" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+          <button id="add-vendor-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
         </div>
       </details>
     </div>
-    <div class="w-2/3 p-4">
+    <div class="w-full sm:w-2/3 p-2 sm:p-4">
       <div id="calendar" class="bg-white p-4 rounded border border-gray-300">
         <div class="flex justify-between mb-4">
           <button id="prev-month" class="p-1 bg-blue-700 rounded text-white"><</button>
@@ -116,13 +116,13 @@
           <button id="next-month" class="p-1 bg-blue-700 rounded text-white">></button>
         </div>
         <div class="grid grid-cols-7 gap-1 mb-2">
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Sun</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Mon</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Tue</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Wed</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Thu</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Fri</div>
-          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Sat</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Sun</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Mon</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Tue</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Wed</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Thu</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Fri</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold text-sm sm:text-base">Sat</div>
         </div>
         <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
       </div>
@@ -164,10 +164,10 @@
       { value: '75', label: '75%', color: '#10B981' },
       { value: '100', label: '100%', color: '#4CAF50' }
     ];
-    let locationPresets = JSON.parse(localStorage.getItem('locationPresets')) || [
-      { value: 'Site A', color: '#4CAF50' },
-      { value: 'Site B', color: '#2196F3' },
-      { value: 'Site C', color: '#FFC107' }
+    let vendorPresets = JSON.parse(localStorage.getItem('vendorPresets')) || [
+      { value: 'Vendor A', color: '#4CAF50' },
+      { value: 'Vendor B', color: '#2196F3' },
+      { value: 'Vendor C', color: '#FFC107' }
     ];
     let currentJob = null;
     let isAuthenticated = localStorage.getItem('auth') === 'true';
@@ -252,6 +252,7 @@
       const tbody = document.getElementById('jobs-table-body');
       tbody.innerHTML = '';
       jobs.forEach(job => {
+        const selectedPreset = progressPresets.find(p => p.value === job.progress);
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="p-2 border-b">
@@ -261,7 +262,7 @@
             <div contenteditable="true" class="editable p-1" onblur="updateJob('${job.id}', 'address', this.innerText)">${job.address}</div>
           </td>
           <td class="p-2 border-b">
-            <select class="p-1 bg-white rounded w-full border border-gray-300 progress-select" onchange="updateJob('${job.id}', 'progress', this.value)">
+            <select class="p-1 bg-white rounded w-full border border-gray-300 progress-select" style="background-color: ${selectedPreset ? selectedPreset.color : '#ffffff'}" onchange="updateJob('${job.id}', 'progress', this.value); this.style.backgroundColor = progressPresets.find(p => p.value === this.value).color">
               ${progressPresets.map(p => `
                 <option value="${p.value}" style="background-color: ${p.color}" ${job.progress === p.value ? 'selected' : ''}>${p.label}</option>
               `).join('')}
@@ -282,12 +283,16 @@
       });
       renderCalendar();
       renderProgressPresets();
-      renderLocationPresets();
+      renderVendorPresets();
       const progressSelect = document.getElementById('new-job-progress');
       progressSelect.innerHTML = progressPresets.map(p => `
         <option value="${p.value}" style="background-color: ${p.color}">${p.label}</option>
       `).join('');
       progressSelect.className = 'p-1 bg-white rounded w-full border border-gray-300 progress-select';
+      if (progressSelect.value) {
+        const preset = progressPresets.find(p => p.value === progressSelect.value);
+        if (preset) progressSelect.style.backgroundColor = preset.color;
+      }
     }
 
     window.updateJob = (id, field, value) => {
@@ -377,33 +382,33 @@
       }
     });
 
-    function renderLocationPresets() {
-      const presetsDiv = document.getElementById('location-presets');
+    function renderVendorPresets() {
+      const presetsDiv = document.getElementById('vendor-presets');
       presetsDiv.innerHTML = '';
-      locationPresets.forEach(p => {
+      vendorPresets.forEach(p => {
         const div = document.createElement('div');
         div.className = 'flex items-center mb-2';
         div.innerHTML = `
           <span class="mr-2" style="color: ${p.color}">${p.value}</span>
-          <button onclick="deleteLocationPreset('${p.value}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+          <button onclick="deleteVendorPreset('${p.value}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
         `;
         presetsDiv.appendChild(div);
       });
     }
 
-    window.deleteLocationPreset = (value) => {
-      locationPresets = locationPresets.filter(p => p.value !== value);
-      localStorage.setItem('locationPresets', JSON.stringify(locationPresets));
+    window.deleteVendorPreset = (value) => {
+      vendorPresets = vendorPresets.filter(p => p.value !== value);
+      localStorage.setItem('vendorPresets', JSON.stringify(vendorPresets));
       renderJobsTable();
     };
 
-    document.getElementById('add-location-preset').addEventListener('click', () => {
-      const value = document.getElementById('location-value').value;
+    document.getElementById('add-vendor-preset').addEventListener('click', () => {
+      const value = document.getElementById('vendor-value').value;
       if (value) {
-        locationPresets.push({ value, color: '#000000' });
-        localStorage.setItem('locationPresets', JSON.stringify(locationPresets));
+        vendorPresets.push({ value, color: '#000000' });
+        localStorage.setItem('vendorPresets', JSON.stringify(vendorPresets));
         renderJobsTable();
-        document.getElementById('location-value').value = '';
+        document.getElementById('vendor-value').value = '';
       }
     });
 
@@ -429,13 +434,13 @@
       for (let day = 1; day <= daysInMonth; day++) {
         const div = document.createElement('div');
         div.className = `calendar-day ${isCurrentMonth && day === today.getDate() ? 'today' : ''}`;
-        div.innerHTML = `<div class="font-bold">${day}</div>`;
+        div.innerHTML = `<div class="font-bold text-sm sm:text-base">${day}</div>`;
         const dayDate = new Date(year, month, day).toISOString().split('T')[0];
         jobs.forEach(job => {
           const jobDates = getDatesBetween(job.startDate, job.endDate);
           if (jobDates.includes(dayDate)) {
             const jobDiv = document.createElement('div');
-            jobDiv.className = 'text-sm cursor-pointer hover:underline bg-blue-100 p-1 rounded mt-1';
+            jobDiv.className = 'text-xs sm:text-sm cursor-pointer hover:underline bg-blue-100 p-1 rounded mt-1';
             jobDiv.textContent = job.name;
             jobDiv.onclick = () => showJobPage(job.id);
             div.appendChild(jobDiv);
@@ -483,8 +488,8 @@
       switch (id) {
         case 'tables':
           return `
-            <div class="bg-white p-4 rounded flex space-x-4">
-              <div class="flex-1">
+            <div class="bg-white p-4 rounded flex flex-col sm:flex-row sm:space-x-4">
+              <div class="flex-1 mb-4 sm:mb-0">
                 <h3 class="text-lg font-bold mb-2">Revenue</h3>
                 ${renderTable(currentJob.revenue, 'revenue', [
                   { key: 'date', label: 'Date', type: 'date' },
@@ -494,8 +499,7 @@
                     { value: 'Credit', color: '#2196F3' },
                     { value: 'Check', color: '#FFC107' }
                   ]},
-                  { key: 'cost', label: 'Cost', type: 'text' },
-                  { key: 'location', label: 'Location', type: 'select', options: locationPresets }
+                  { key: 'cost', label: 'Cost', type: 'text' }
                 ])}
               </div>
               <div class="flex-1">
@@ -509,7 +513,7 @@
                     { value: 'Check', color: '#FFC107' }
                   ]},
                   { key: 'cost', label: 'Cost', type: 'text' },
-                  { key: 'location', label: 'Location', type: 'select', options: locationPresets }
+                  { key: 'vendor', label: 'Vendor/Supplier', type: 'select', options: vendorPresets }
                 ])}
               </div>
             </div>
@@ -540,6 +544,7 @@
               ` : `
                 <textarea id="quote-text" class="w-full p-2 bg-white rounded border border-gray-300 mb-2" rows="5">${currentJob.quoteText || ''}</textarea>
                 ${renderDynamicTable(currentJob.quote, currentJob.quoteColumns, 'quote')}
+                <input type="file" id="quote-image" accept="image/*" class="mb-2" />
                 <input id="quote-new-column" placeholder="New Column Name" class="p-1 bg-white rounded border border-gray-300 mr-2" />
                 <button onclick="addColumn('quote')" class="p-1 bg-blue-700 rounded text-white">Add Column</button>
               `}
@@ -657,12 +662,17 @@
 
     window.addRow = (type) => {
       const newRow = { id: generateUUID() };
-      const columns = [
+      const columns = type === 'revenue' ? [
+        { key: 'date', type: 'date' },
+        { key: 'purchase', type: 'text' },
+        { key: 'method', type: 'select' },
+        { key: 'cost', type: 'text' }
+      ] : [
         { key: 'date', type: 'date' },
         { key: 'purchase', type: 'text' },
         { key: 'method', type: 'select' },
         { key: 'cost', type: 'text' },
-        { key: 'location', type: 'select' }
+        { key: 'vendor', type: 'select' }
       ];
       let valid = true;
       columns.forEach(col => {
