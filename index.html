@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invictus Construction Sarnia</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage.js"></script>
   <style>
     body { background-color: #ffffff; color: #1f2937; font-family: sans-serif; }
     .draggable { cursor: move; }
@@ -23,6 +27,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
       <h1 class="text-xl font-bold">Invictus Construction Sarnia</h1>
       <div id="nav-links" class="flex space-x-4">
+        <span id="user-email" class="hidden"></span>
         <button onclick="goHome()" class="hover:text-gray-300">Home</button>
         <button id="logout-btn" class="hover:text-gray-300 hidden">Logout</button>
       </div>
@@ -31,25 +36,59 @@
 
   <!-- Login Page -->
   <div id="login-page" class="flex items-center justify-center h-screen">
-    <div class="bg-gray-100 p-8 rounded-lg shadow-lg">
+    <div class="bg-gray-100 p-8 rounded-lg shadow-lg w-full max-w-md">
       <h2 class="text-2xl font-bold mb-4">Login</h2>
       <form id="login-form">
         <input
-          type="text"
-          id="username"
-          placeholder="Username"
+          type="email"
+          id="login-email"
+          placeholder="Email"
           class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+          required
         />
         <input
           type="password"
-          id="password"
+          id="login-password"
           placeholder="Password"
           class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+          required
         />
         <button type="submit" class="w-full p-2 bg-blue-700 rounded hover:bg-blue-600 text-white">
           Login
         </button>
       </form>
+      <p class="mt-4 text-center">
+        Don't have an account? <button id="show-register" class="text-blue-700 hover:underline">Register</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- Register Page -->
+  <div id="register-page" class="flex items-center justify-center h-screen hidden">
+    <div class="bg-gray-100 p-8 rounded-lg shadow-lg w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-4">Register</h2>
+      <form id="register-form">
+        <input
+          type="email"
+          id="register-email"
+          placeholder="Email"
+          class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+          required
+        />
+        <input
+          type="password"
+          id="register-password"
+          placeholder="Password (min 6 characters)"
+          class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+          required
+        />
+        <button type="submit" class="w-full p-2 bg-blue-700 rounded hover:bg-blue-600 text-white">
+          Register
+        </button>
+      </form>
+      <p class="mt-4 text-center">
+        Already have an account? <button id="show-login" class="text-blue-700 hover:underline">Login</button>
+      </p>
     </div>
   </div>
 
@@ -106,6 +145,7 @@
           <h4 class="font-bold">Vendor/Supplier Presets</h4>
           <div id="vendor-presets" class="mb-2"></div>
           <input id="vendor-value" placeholder="Vendor/Supplier" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+          <input id="vendor-color" type="color" class="p-1 rounded mr-2" />
           <button id="add-vendor-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
         </div>
       </details>
@@ -138,6 +178,22 @@
   </div>
 
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
     // Utility functions
     function generateUUID() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -162,96 +218,158 @@
     }
 
     // State management
-    let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
-    let progressPresets = JSON.parse(localStorage.getItem('progressPresets')) || [
+    let jobs = [];
+    let progressPresets = [
       { value: '0', label: '0%', color: '#EF4444' },
       { value: '25', label: '25%', color: '#F59E0B' },
       { value: '50', label: '50%', color: '#3B82F6' },
       { value: '75', label: '75%', color: '#10B981' },
       { value: '100', label: '100%', color: '#4CAF50' }
     ];
-    let vendorPresets = JSON.parse(localStorage.getItem('vendorPresets')) || [
+    let vendorPresets = [
       { value: 'Vendor A', color: '#4CAF50' },
       { value: 'Vendor B', color: '#2196F3' },
       { value: 'Vendor C', color: '#FFC107' }
     ];
     let currentJob = null;
-    let isAuthenticated = localStorage.getItem('auth') === 'true';
     let currentDate = new Date();
 
     // Page management
     const loginPage = document.getElementById('login-page');
+    const registerPage = document.getElementById('register-page');
     const homePage = document.getElementById('home-page');
     const jobPage = document.getElementById('job-page');
     const logoutBtn = document.getElementById('logout-btn');
+    const userEmail = document.getElementById('user-email');
 
     function showPage(page) {
       loginPage.classList.add('hidden');
+      registerPage.classList.add('hidden');
       homePage.classList.add('hidden');
       jobPage.classList.add('hidden');
       page.classList.remove('hidden');
     }
 
     function goHome() {
-      if (isAuthenticated) {
+      if (auth.currentUser) {
         showPage(homePage);
         renderHome();
       }
     }
 
-    function checkAuth() {
-      if (isAuthenticated) {
-        showPage(homePage);
+    // Authentication handling
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        userEmail.textContent = user.email;
+        userEmail.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
+        showPage(homePage);
+        loadUserData(user.uid);
       } else {
-        showPage(loginPage);
+        userEmail.classList.add('hidden');
         logoutBtn.classList.add('hidden');
+        showPage(loginPage);
+        jobs = [];
+        progressPresets = [
+          { value: '0', label: '0%', color: '#EF4444' },
+          { value: '25', label: '25%', color: '#F59E0B' },
+          { value: '50', label: '50%', color: '#3B82F6' },
+          { value: '75', label: '75%', color: '#10B981' },
+          { value: '100', label: '100%', color: '#4CAF50' }
+        ];
+        vendorPresets = [
+          { value: 'Vendor A', color: '#4CAF50' },
+          { value: 'Vendor B', color: '#2196F3' },
+          { value: 'Vendor C', color: '#FFC107' }
+        ];
       }
-    }
-
-    // Logout on tab close
-    window.addEventListener('beforeunload', () => {
-      localStorage.removeItem('auth');
     });
 
-    // Login handling
-    document.getElementById('login-form').addEventListener('submit', (e) => {
+    // Login
+    document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      if (username === 'admin' && password === 'password') {
-        localStorage.setItem('auth', 'true');
-        isAuthenticated = true;
-        checkAuth();
-        renderHome();
-      } else {
-        alert('Invalid credentials');
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        alert(`Login failed: ${error.message}`);
       }
     });
 
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      localStorage.removeItem('auth');
-      isAuthenticated = false;
-      checkAuth();
+    // Register
+    document.getElementById('register-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+        await db.collection('users').doc(uid).collection('data').doc('presets').set({
+          progressPresets,
+          vendorPresets
+        });
+        showPage(homePage);
+      } catch (error) {
+        alert(`Registration failed: ${error.message}`);
+      }
     });
+
+    document.getElementById('show-register').addEventListener('click', () => {
+      showPage(registerPage);
+    });
+
+    document.getElementById('show-login').addEventListener('click', () => {
+      showPage(loginPage);
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await auth.signOut();
+    });
+
+    // Load user data
+    function loadUserData(uid) {
+      // Real-time listener for jobs
+      db.collection('users').doc(uid).collection('data').doc('jobs').collection('items')
+        .onSnapshot(snapshot => {
+          jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderJobsTable();
+        });
+
+      // Load presets
+      db.collection('users').doc(uid).collection('data').doc('presets').get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            progressPresets = data.progressPresets || progressPresets;
+            vendorPresets = data.vendorPresets || vendorPresets;
+            renderJobsTable();
+          }
+        });
+
+      // Load logo
+      db.collection('users').doc(uid).collection('data').doc('logo').get()
+        .then(doc => {
+          if (doc.exists && doc.data().url) {
+            const logoContainer = document.getElementById('logo-container');
+            logoContainer.innerHTML = `<img src="${doc.data().url}" alt="Logo" class="h-20" />`;
+          }
+        });
+    }
 
     // Logo upload
-    document.getElementById('logo-upload').addEventListener('change', (e) => {
+    document.getElementById('logo-upload').addEventListener('change', async e => {
       const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          localStorage.setItem('logo', reader.result);
-          const logoContainer = document.getElementById('logo-container');
-          logoContainer.innerHTML = `<img src="${reader.result}" alt="Logo" class="h-16" />`;
-        };
-        reader.readAsDataURL(file);
+      if (file && auth.currentUser) {
+        const uid = auth.currentUser.uid;
+        const storageRef = storage.ref(`users/${uid}/logo`);
+        await storageRef.put(file);
+        const url = await storageRef.getDownloadURL();
+        await db.collection('users').doc(uid).collection('data').doc('logo').set({ url });
+        const logoContainer = document.getElementById('logo-container');
+        logoContainer.innerHTML = `<img src="${url}" alt="Logo" class="h-20" />`;
       }
     });
-
-    if (localStorage.getItem('logo')) {
-      document.getElementById('logo-container').innerHTML = `<img src="${localStorage.getItem('logo')}" alt="Logo" class="h-16" />`;
-    }
 
     // Jobs table rendering
     function renderJobsTable() {
@@ -301,24 +419,25 @@
       }
     }
 
-    window.updateJob = (id, field, value) => {
-      const job = jobs.find(j => j.id === id);
-      if (job) {
-        job[field] = value;
-        localStorage.setItem('jobs', JSON.stringify(jobs));
-        renderJobsTable();
-      }
+    window.updateJob = async (id, field, value) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(id).update({
+        [field]: value
+      });
     };
 
     // Add job
-    document.getElementById('add-job-btn').addEventListener('click', () => {
+    document.getElementById('add-job-btn').addEventListener('click', async () => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const name = document.getElementById('new-job-name').value;
       const address = document.getElementById('new-job-address').value;
       const progress = document.getElementById('new-job-progress').value;
       const startDate = document.getElementById('new-job-start').value;
       const endDate = document.getElementById('new-job-end').value;
       if (name && address && progress && startDate && endDate) {
-        jobs.push({
+        const job = {
           id: generateUUID(),
           name,
           address,
@@ -335,9 +454,8 @@
           quoteColumns: [{ key: 'Description', label: 'Description' }],
           scopeImage: null,
           quoteImage: null
-        });
-        localStorage.setItem('jobs', JSON.stringify(jobs));
-        renderJobsTable();
+        };
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(job.id).set(job);
         document.getElementById('new-job-name').value = '';
         document.getElementById('new-job-address').value = '';
         document.getElementById('new-job-progress').value = progressPresets[0].value;
@@ -347,10 +465,10 @@
     });
 
     // Delete job
-    window.deleteJob = (id) => {
-      jobs = jobs.filter(j => j.id !== id);
-      localStorage.setItem('jobs', JSON.stringify(jobs));
-      renderJobsTable();
+    window.deleteJob = async id => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(id).delete();
     };
 
     // Presets management
@@ -368,19 +486,27 @@
       });
     }
 
-    window.deleteProgressPreset = (value) => {
+    window.deleteProgressPreset = async value => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       progressPresets = progressPresets.filter(p => p.value !== value);
-      localStorage.setItem('progressPresets', JSON.stringify(progressPresets));
+      await db.collection('users').doc(uid).collection('data').doc('presets').update({
+        progressPresets
+      });
       renderJobsTable();
     };
 
-    document.getElementById('add-progress-preset').addEventListener('click', () => {
+    document.getElementById('add-progress-preset').addEventListener('click', async () => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const value = document.getElementById('progress-value').value;
       const label = document.getElementById('progress-label').value;
       const color = document.getElementById('progress-color').value;
       if (value && label && color) {
         progressPresets.push({ value, label, color });
-        localStorage.setItem('progressPresets', JSON.stringify(progressPresets));
+        await db.collection('users').doc(uid).collection('data').doc('presets').update({
+          progressPresets
+        });
         renderJobsTable();
         document.getElementById('progress-value').value = '';
         document.getElementById('progress-label').value = '';
@@ -402,19 +528,29 @@
       });
     }
 
-    window.deleteVendorPreset = (value) => {
+    window.deleteVendorPreset = async value => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       vendorPresets = vendorPresets.filter(p => p.value !== value);
-      localStorage.setItem('vendorPresets', JSON.stringify(vendorPresets));
+      await db.collection('users').doc(uid).collection('data').doc('presets').update({
+        vendorPresets
+      });
       renderJobsTable();
     };
 
-    document.getElementById('add-vendor-preset').addEventListener('click', () => {
+    document.getElementById('add-vendor-preset').addEventListener('click', async () => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const value = document.getElementById('vendor-value').value;
-      if (value) {
-        vendorPresets.push({ value, color: '#000000' });
-        localStorage.setItem('vendorPresets', JSON.stringify(vendorPresets));
+      const color = document.getElementById('vendor-color').value;
+      if (value && color) {
+        vendorPresets.push({ value, color });
+        await db.collection('users').doc(uid).collection('data').doc('presets').update({
+          vendorPresets
+        });
         renderJobsTable();
         document.getElementById('vendor-value').value = '';
+        document.getElementById('vendor-color').value = '#000000';
       }
     });
 
@@ -467,8 +603,8 @@
     });
 
     // Job page rendering
-    window.showJobPage = (jobId) => {
-      currentJob = jobs.find(j => j.id === jobId);
+    window.showJobPage = id => {
+      currentJob = jobs.find(j => j.id === id);
       if (!currentJob) return;
       showPage(jobPage);
       document.getElementById('job-title').textContent = currentJob.name;
@@ -669,7 +805,9 @@
       `;
     }
 
-    window.addRow = (type) => {
+    window.addRow = async type => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const newRow = { id: generateUUID() };
       const columns = type === 'revenue' ? [
         { key: 'date', type: 'date' },
@@ -703,12 +841,16 @@
       });
       if (valid) {
         currentJob[type].push(newRow);
-        localStorage.setItem('jobs', JSON.stringify(jobs));
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+          [type]: currentJob[type]
+        });
         showJobPage(currentJob.id);
       }
     };
 
-    window.updateRow = (type, id, key, value) => {
+    window.updateRow = async (type, id, key, value) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const row = currentJob[type].find(r => r.id === id);
       if (row) {
         if (key === 'cost') {
@@ -716,18 +858,26 @@
         } else {
           row[key] = value;
         }
-        localStorage.setItem('jobs', JSON.stringify(jobs));
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+          [type]: currentJob[type]
+        });
         showJobPage(currentJob.id);
       }
     };
 
-    window.deleteRow = (type, id) => {
+    window.deleteRow = async (type, id) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       currentJob[type] = currentJob[type].filter(r => r.id !== id);
-      localStorage.setItem('jobs', JSON.stringify(jobs));
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+        [type]: currentJob[type]
+      });
       showJobPage(currentJob.id);
     };
 
-    window.addDynamicRow = (type) => {
+    window.addDynamicRow = async type => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const newRow = { id: generateUUID() };
       const columns = currentJob[`${type}Columns`];
       let valid = true;
@@ -742,43 +892,63 @@
       });
       if (valid) {
         currentJob[type].push(newRow);
-        localStorage.setItem('jobs', JSON.stringify(jobs));
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+          [type]: currentJob[type]
+        });
         showJobPage(currentJob.id);
       }
     };
 
-    window.updateDynamicRow = (type, id, key, value) => {
+    window.updateDynamicRow = async (type, id, key, value) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const row = currentJob[type].find(r => r.id === id);
       if (row) {
         row[key] = value;
-        localStorage.setItem('jobs', JSON.stringify(jobs));
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+          [type]: currentJob[type]
+        });
         showJobPage(currentJob.id);
       }
     };
 
-    window.deleteDynamicRow = (type, id) => {
+    window.deleteDynamicRow = async (type, id) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       currentJob[type] = currentJob[type].filter(r => r.id !== id);
-      localStorage.setItem('jobs', JSON.stringify(jobs));
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+        [type]: currentJob[type]
+      });
       showJobPage(currentJob.id);
     };
 
-    window.addColumn = (type) => {
+    window.addColumn = async type => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       const input = document.getElementById(`${type}-new-column`);
       const label = input.value;
       if (label) {
         const key = label.toLowerCase().replace(/\s+/g, '_');
         currentJob[`${type}Columns`].push({ key, label });
         currentJob[type].forEach(row => row[key] = '');
-        localStorage.setItem('jobs', JSON.stringify(jobs));
+        await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+          [`${type}Columns`]: currentJob[`${type}Columns`],
+          [type]: currentJob[type]
+        });
         showJobPage(currentJob.id);
         input.value = '';
       }
     };
 
-    window.deleteColumn = (type, key) => {
+    window.deleteColumn = async (type, key) => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       currentJob[`${type}Columns`] = currentJob[`${type}Columns`].filter(col => col.key !== key);
       currentJob[type].forEach(row => delete row[key]);
-      localStorage.setItem('jobs', JSON.stringify(jobs));
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+        [`${type}Columns`]: currentJob[`${type}Columns`],
+        [type]: currentJob[type]
+      });
       showJobPage(currentJob.id);
     };
 
@@ -790,59 +960,83 @@
       const quoteImage = document.getElementById('quote-image');
 
       if (scopeText) {
-        scopeText.addEventListener('input', () => {
+        scopeText.addEventListener('input', async () => {
+          if (!auth.currentUser) return;
+          const uid = auth.currentUser.uid;
           currentJob.scopeText = scopeText.value;
-          localStorage.setItem('jobs', JSON.stringify(jobs));
+          await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+            scopeText: currentJob.scopeText
+          });
         });
       }
 
       if (quoteText) {
-        quoteText.addEventListener('input', () => {
+        quoteText.addEventListener('input', async () => {
+          if (!auth.currentUser) return;
+          const uid = auth.currentUser.uid;
           currentJob.quoteText = quoteText.value;
-          localStorage.setItem('jobs', JSON.stringify(jobs));
+          await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+            quoteText: currentJob.quoteText
+          });
         });
       }
 
       if (scopeImage) {
-        scopeImage.addEventListener('change', (e) => {
+        scopeImage.addEventListener('change', async e => {
+          if (!auth.currentUser) return;
+          const uid = auth.currentUser.uid;
           const file = e.target.files[0];
           if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              currentJob.scopeImage = reader.result;
-              currentJob.scopeText = '';
-              currentJob.scope = [{ id: generateUUID(), Description: '' }];
-              currentJob.scopeColumns = [{ key: 'Description', label: 'Description' }];
-              localStorage.setItem('jobs', JSON.stringify(jobs));
-              showJobPage(currentJob.id);
-            };
-            reader.readAsDataURL(file);
+            const storageRef = storage.ref(`users/${uid}/scope_${currentJob.id}`);
+            await storageRef.put(file);
+            const url = await storageRef.getDownloadURL();
+            currentJob.scopeImage = url;
+            currentJob.scopeText = '';
+            currentJob.scope = [{ id: generateUUID(), Description: '' }];
+            currentJob.scopeColumns = [{ key: 'Description', label: 'Description' }];
+            await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+              scopeImage: currentJob.scopeImage,
+              scopeText: currentJob.scopeText,
+              scope: currentJob.scope,
+              scopeColumns: currentJob.scopeColumns
+            });
+            showJobPage(currentJob.id);
           }
         });
       }
 
       if (quoteImage) {
-        quoteImage.addEventListener('change', (e) => {
+        quoteImage.addEventListener('change', async e => {
+          if (!auth.currentUser) return;
+          const uid = auth.currentUser.uid;
           const file = e.target.files[0];
           if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              currentJob.quoteImage = reader.result;
-              currentJob.quoteText = '';
-              currentJob.quote = [{ id: generateUUID(), Description: '' }];
-              currentJob.quoteColumns = [{ key: 'Description', label: 'Description' }];
-              localStorage.setItem('jobs', JSON.stringify(jobs));
-              showJobPage(currentJob.id);
-            };
-            reader.readAsDataURL(file);
+            const storageRef = storage.ref(`users/${uid}/quote_${currentJob.id}`);
+            await storageRef.put(file);
+            const url = await storageRef.getDownloadURL();
+            currentJob.quoteImage = url;
+            currentJob.quoteText = '';
+            currentJob.quote = [{ id: generateUUID(), Description: '' }];
+            currentJob.quoteColumns = [{ key: 'Description', label: 'Description' }];
+            await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+              quoteImage: currentJob.quoteImage,
+              quoteText: currentJob.quoteText,
+              quote: currentJob.quote,
+              quoteColumns: currentJob.quoteColumns
+            });
+            showJobPage(currentJob.id);
           }
         });
       }
     }
 
-    window.removeImage = (type) => {
+    window.removeImage = async type => {
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
       currentJob[`${type}Image`] = null;
-      localStorage.setItem('jobs', JSON.stringify(jobs));
+      await db.collection('users').doc(uid).collection('data').doc('jobs').collection('items').doc(currentJob.id).update({
+        [`${type}Image`]: null
+      });
       showJobPage(currentJob.id);
     };
 
@@ -892,9 +1086,6 @@
     function renderHome() {
       renderJobsTable();
     }
-
-    checkAuth();
-    if (isAuthenticated) renderHome();
   </script>
 </body>
 </html>
