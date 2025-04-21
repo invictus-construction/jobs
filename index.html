@@ -12,7 +12,9 @@
     .calendar-day { min-h-[80px] sm:min-h-[100px] border: 1px solid #e5e7eb; padding: 4px; }
     .calendar-day.today { background-color: #e0f2fe; }
     .editable:hover { background-color: #f3f4f6; }
-    .progress-select { min-width: 150px; }
+    .progress-select { min-width: 180px; }
+    .method-select { min-width: 120px; }
+    .vendor-select { min-width: 150px; }
   </style>
 </head>
 <body class="min-h-screen pt-16">
@@ -52,9 +54,9 @@
   </div>
 
   <!-- Home Page -->
-  <div id="home-page" class="mx-auto p-1 px-2 sm:max-w-7xl flex flex-col sm:flex-row hidden">
-    <div class="w-full sm:flex-1 sm:mr-4 mb-4 sm:mb-0">
-      <div class="flex justify-between items-center mb-4">
+  <div id="home-page" class="mx-auto p-0 px-1 sm:max-w-7xl flex flex-col sm:flex-row hidden">
+    <div class="w-full sm:flex-1 sm:mr-2 mb-4 sm:mb-0">
+      <div class="flex justify-between items-center mb-2 p-1">
         <div class="flex items-center">
           <div id="logo-container" class="mr-4">
             <input type="file" id="logo-upload" accept="image/*" class="hidden" />
@@ -63,7 +65,7 @@
           <h2 class="text-2xl font-bold">Upcoming Jobs</h2>
         </div>
       </div>
-      <div id="jobs-table" class="overflow-x-auto mb-8">
+      <div id="jobs-table" class="overflow-x-auto mb-4">
         <table class="w-full bg-white rounded border border-gray-300">
           <thead>
             <tr class="bg-gray-100">
@@ -90,9 +92,9 @@
           </tr>
         </table>
       </div>
-      <details class="bg-white p-4 rounded border border-gray-300">
+      <details class="bg-white p-2 rounded border border-gray-300">
         <summary class="font-bold cursor-pointer">Settings</summary>
-        <div class="mt-4">
+        <div class="mt-2">
           <h4 class="font-bold">Progress Presets</h4>
           <div id="progress-presets" class="mb-2"></div>
           <input id="progress-value" placeholder="Value (%)" class="p-1 bg-white rounded border border-gray-300 mr-2" />
@@ -108,9 +110,9 @@
         </div>
       </details>
     </div>
-    <div class="w-full sm:w-2/3 p-2 sm:p-4">
-      <div id="calendar" class="bg-white p-4 rounded border border-gray-300">
-        <div class="flex justify-between mb-4">
+    <div class="w-full sm:w-2/3 p-1 sm:p-2">
+      <div id="calendar" class="bg-white p-2 rounded border border-gray-300">
+        <div class="flex justify-between mb-2">
           <button id="prev-month" class="p-1 bg-blue-700 rounded text-white"><</button>
           <h3 id="calendar-month" class="text-lg font-bold"></h3>
           <button id="next-month" class="p-1 bg-blue-700 rounded text-white">></button>
@@ -130,9 +132,9 @@
   </div>
 
   <!-- Job Page -->
-  <div id="job-page" class="max-w-7xl mx-auto p-4 hidden">
-    <h2 id="job-title" class="text-2xl font-bold mb-4"></h2>
-    <div id="job-sections" class="space-y-4"></div>
+  <div id="job-page" class="mx-auto p-1 px-2 sm:max-w-7xl hidden">
+    <h2 id="job-title" class="text-2xl font-bold mb-2"></h2>
+    <div id="job-sections" class="space-y-2"></div>
   </div>
 
   <script>
@@ -153,6 +155,10 @@
         current.setDate(current.getDate() + 1);
       }
       return dates;
+    }
+
+    function formatCost(cost) {
+      return Number.parseFloat(cost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     // State management
@@ -237,14 +243,14 @@
         reader.onload = () => {
           localStorage.setItem('logo', reader.result);
           const logoContainer = document.getElementById('logo-container');
-          logoContainer.innerHTML = `<img src="${reader.result}" alt="Logo" class="h-12" />`;
+          logoContainer.innerHTML = `<img src="${reader.result}" alt="Logo" class="h-16" />`;
         };
         reader.readAsDataURL(file);
       }
     });
 
     if (localStorage.getItem('logo')) {
-      document.getElementById('logo-container').innerHTML = `<img src="${localStorage.getItem('logo')}" alt="Logo" class="h-12" />`;
+      document.getElementById('logo-container').innerHTML = `<img src="${localStorage.getItem('logo')}" alt="Logo" class="h-16" />`;
     }
 
     // Jobs table rendering
@@ -488,7 +494,7 @@
       switch (id) {
         case 'tables':
           return `
-            <div class="bg-white p-4 rounded flex flex-col sm:flex-row sm:space-x-4">
+            <div class="bg-white p-2 rounded flex flex-col sm:flex-row sm:space-x-2">
               <div class="flex-1 mb-4 sm:mb-0">
                 <h3 class="text-lg font-bold mb-2">Revenue</h3>
                 ${renderTable(currentJob.revenue, 'revenue', [
@@ -520,7 +526,7 @@
           `;
         case 'scope':
           return `
-            <div class="bg-white p-4 rounded">
+            <div class="bg-white p-2 rounded">
               <h3 class="text-lg font-bold mb-2">Job Scope</h3>
               ${currentJob.scopeImage ? `
                 <img src="${currentJob.scopeImage}" alt="Scope" class="max-w-full h-auto mb-2" />
@@ -536,7 +542,7 @@
           `;
         case 'quote':
           return `
-            <div class="bg-white p-4 rounded">
+            <div class="bg-white p-2 rounded">
               <h3 class="text-lg font-bold mb-2">Job Quote</h3>
               ${currentJob.quoteImage ? `
                 <img src="${currentJob.quoteImage}" alt="Quote" class="max-w-full h-auto mb-2" />
@@ -556,7 +562,8 @@
     }
 
     function renderTable(data, type, columns) {
-      const total = data.reduce((sum, row) => sum + (parseFloat(row.cost) || 0), 0).toFixed(2);
+      const total = data.reduce((sum, row) => sum + (parseFloat(row.cost) || 0), 0);
+      const formattedTotal = formatCost(total);
       return `
         <table class="min-w-full bg-white rounded border border-gray-300">
           <thead>
@@ -571,7 +578,7 @@
                 ${columns.map(col => `
                   <td class="p-2 border-b">
                     ${col.type === 'select' ? `
-                      <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)">
+                      <select class="${col.key === 'method' ? 'method-select' : 'vendor-select'} p-1 bg-white rounded w-full border border-gray-300" style="background-color: ${col.options.find(opt => opt.value === row[col.key])?.color || '#ffffff'}" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value); this.style.backgroundColor = this.options[this.selectedIndex].style.backgroundColor">
                         <option value="">Select</option>
                         ${col.options.map(opt => `
                           <option value="${opt.value}" style="background-color: ${opt.color}" ${row[col.key] === opt.value ? 'selected' : ''}>${opt.value}</option>
@@ -579,6 +586,8 @@
                       </select>
                     ` : col.type === 'date' ? `
                       <input type="date" value="${row[col.key]}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)" />
+                    ` : col.key === 'cost' ? `
+                      <div contenteditable="true" class="editable p-1" onblur="updateRow('${type}', '${row.id}', '${col.key}', this.innerText)">${formatCost(row.cost)}</div>
                     ` : `
                       <div contenteditable="true" class="editable p-1" onblur="updateRow('${type}', '${row.id}', '${col.key}', this.innerText)">${row[col.key]}</div>
                     `}
@@ -593,7 +602,7 @@
               ${columns.map(col => `
                 <td class="p-2 border-b">
                   ${col.type === 'select' ? `
-                    <select id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300">
+                    <select id="new-${type}-${col.key}" class="${col.key === 'method' ? 'method-select' : 'vendor-select'} p-1 bg-white rounded w-full border border-gray-300">
                       <option value="">Select</option>
                       ${col.options.map(opt => `
                         <option value="${opt.value}" style="background-color: ${opt.color}">${opt.value}</option>
@@ -610,7 +619,7 @@
             </tr>
             <tr>
               <td class="p-2 border-b font-bold" colspan="${columns.length - 1}">Total</td>
-              <td class="p-2 border-b font-bold">$${total}</td>
+              <td class="p-2 border-b font-bold">$${formattedTotal}</td>
               <td class="p-2 border-b"></td>
             </tr>
           </tbody>
@@ -677,7 +686,15 @@
       let valid = true;
       columns.forEach(col => {
         const input = document.getElementById(`new-${type}-${col.key}`);
-        if (input.value) {
+        if (col.key === 'cost') {
+          const costValue = input.value.replace(/,/g, '');
+          if (costValue) {
+            newRow[col.key] = parseFloat(costValue).toFixed(2);
+            input.value = '';
+          } else {
+            valid = false;
+          }
+        } else if (input.value) {
           newRow[col.key] = input.value;
           input.value = '';
         } else {
@@ -694,7 +711,11 @@
     window.updateRow = (type, id, key, value) => {
       const row = currentJob[type].find(r => r.id === id);
       if (row) {
-        row[key] = value;
+        if (key === 'cost') {
+          row[key] = parseFloat(value.replace(/,/g, '')).toFixed(2);
+        } else {
+          row[key] = value;
+        }
         localStorage.setItem('jobs', JSON.stringify(jobs));
         showJobPage(currentJob.id);
       }
