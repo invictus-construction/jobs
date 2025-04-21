@@ -12,6 +12,7 @@
     .calendar-day { min-height: 100px; border: 1px solid #e5e7eb; padding: 4px; }
     .calendar-day.today { background-color: #e0f2fe; }
     .editable:hover { background-color: #f3f4f6; }
+    .progress-select { min-width: 120px; }
   </style>
 </head>
 <body class="min-h-screen pt-16">
@@ -20,7 +21,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
       <h1 class="text-xl font-bold">Invictus Construction Sarnia</h1>
       <div id="nav-links" class="flex space-x-4">
-        <a href="#home" class="hover:text-gray-300">Home</a>
+        <button onclick="goHome()" class="hover:text-gray-300">Home</button>
         <button id="logout-btn" class="hover:text-gray-300 hidden">Logout</button>
       </div>
     </div>
@@ -51,8 +52,8 @@
   </div>
 
   <!-- Home Page -->
-  <div id="home-page" class="max-w-7xl mx-auto p-4 flex hidden">
-    <div class="flex-1">
+  <div id="home-page" class="max-w-7xl mx-auto p-2 flex hidden">
+    <div class="flex-1 mr-4">
       <div class="flex justify-between items-center mb-4">
         <div class="flex items-center">
           <div id="logo-container" class="mr-4">
@@ -63,7 +64,7 @@
         </div>
       </div>
       <div id="jobs-table" class="overflow-x-auto mb-8">
-        <table class="min-w-full bg-white rounded border border-gray-300">
+        <table class="w-full bg-white rounded border border-gray-300">
           <thead>
             <tr class="bg-gray-100">
               <th class="p-2 text-left border-b">Job Name</th>
@@ -79,7 +80,7 @@
             <td class="p-2 border-b"><input id="new-job-name" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
             <td class="p-2 border-b"><input id="new-job-address" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
             <td class="p-2 border-b">
-              <select id="new-job-progress" class="p-1 bg-white rounded w-full border border-gray-300"></select>
+              <select id="new-job-progress" class="p-1 bg-white rounded w-full border border-gray-300 progress-select"></select>
             </td>
             <td class="p-2 border-b"><input type="date" id="new-job-start" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
             <td class="p-2 border-b"><input type="date" id="new-job-end" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
@@ -89,9 +90,9 @@
           </tr>
         </table>
       </div>
-      <div class="bg-white p-4 rounded border border-gray-300">
-        <h3 class="text-lg font-bold mb-4">Settings</h3>
-        <div class="mb-4">
+      <details class="bg-white p-4 rounded border border-gray-300">
+        <summary class="font-bold cursor-pointer">Settings</summary>
+        <div class="mt-4">
           <h4 class="font-bold">Progress Presets</h4>
           <div id="progress-presets" class="mb-2"></div>
           <input id="progress-value" placeholder="Value (%)" class="p-1 bg-white rounded border border-gray-300 mr-2" />
@@ -105,14 +106,23 @@
           <input id="location-value" placeholder="Location" class="p-1 bg-white rounded border border-gray-300 mr-2" />
           <button id="add-location-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
         </div>
-      </div>
+      </details>
     </div>
-    <div class="w-1/3 p-4">
+    <div class="w-2/3 p-4">
       <div id="calendar" class="bg-white p-4 rounded border border-gray-300">
         <div class="flex justify-between mb-4">
-          <button id="prev-month" class="p-1 bg-blue-700 rounded text-white">&lt;</button>
+          <button id="prev-month" class="p-1 bg-blue-700 rounded text-white"><</button>
           <h3 id="calendar-month" class="text-lg font-bold"></h3>
-          <button id="next-month" class="p-1 bg-blue-700 rounded text-white">&gt;</button>
+          <button id="next-month" class="p-1 bg-blue-700 rounded text-white">></button>
+        </div>
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Sun</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Mon</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Tue</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Wed</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Thu</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Fri</div>
+          <div class="bg-gray-100 border border-gray-300 p-2 text-center font-bold">Sat</div>
         </div>
         <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
       </div>
@@ -132,6 +142,17 @@
         const r = Math.random() * 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
       });
+    }
+
+    function getDatesBetween(startDate, endDate) {
+      const dates = [];
+      let current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
     }
 
     // State management
@@ -165,6 +186,13 @@
       page.classList.remove('hidden');
     }
 
+    function goHome() {
+      if (isAuthenticated) {
+        showPage(homePage);
+        renderHome();
+      }
+    }
+
     function checkAuth() {
       if (isAuthenticated) {
         showPage(homePage);
@@ -174,6 +202,11 @@
         logoutBtn.classList.add('hidden');
       }
     }
+
+    // Logout on tab close
+    window.addEventListener('beforeunload', () => {
+      localStorage.removeItem('auth');
+    });
 
     // Login handling
     document.getElementById('login-form').addEventListener('submit', (e) => {
@@ -228,7 +261,7 @@
             <div contenteditable="true" class="editable p-1" onblur="updateJob('${job.id}', 'address', this.innerText)">${job.address}</div>
           </td>
           <td class="p-2 border-b">
-            <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateJob('${job.id}', 'progress', this.value)">
+            <select class="p-1 bg-white rounded w-full border border-gray-300 progress-select" onchange="updateJob('${job.id}', 'progress', this.value)">
               ${progressPresets.map(p => `
                 <option value="${p.value}" style="background-color: ${p.color}" ${job.progress === p.value ? 'selected' : ''}>${p.label}</option>
               `).join('')}
@@ -254,6 +287,7 @@
       progressSelect.innerHTML = progressPresets.map(p => `
         <option value="${p.value}" style="background-color: ${p.color}">${p.label}</option>
       `).join('');
+      progressSelect.className = 'p-1 bg-white rounded w-full border border-gray-300 progress-select';
     }
 
     window.updateJob = (id, field, value) => {
@@ -282,8 +316,10 @@
           endDate,
           revenue: [],
           expenses: [],
+          scopeText: '',
           scope: [{ id: generateUUID(), Description: '' }],
           scopeColumns: [{ key: 'Description', label: 'Description' }],
+          quoteText: '',
           quote: [{ id: generateUUID(), Description: '' }],
           quoteColumns: [{ key: 'Description', label: 'Description' }],
           scopeImage: null,
@@ -396,9 +432,10 @@
         div.innerHTML = `<div class="font-bold">${day}</div>`;
         const dayDate = new Date(year, month, day).toISOString().split('T')[0];
         jobs.forEach(job => {
-          if (job.startDate === dayDate || job.endDate === dayDate) {
+          const jobDates = getDatesBetween(job.startDate, job.endDate);
+          if (jobDates.includes(dayDate)) {
             const jobDiv = document.createElement('div');
-            jobDiv.className = 'text-sm cursor-pointer hover:underline';
+            jobDiv.className = 'text-sm cursor-pointer hover:underline bg-blue-100 p-1 rounded mt-1';
             jobDiv.textContent = job.name;
             jobDiv.onclick = () => showJobPage(job.id);
             div.appendChild(jobDiv);
@@ -485,6 +522,7 @@
                 <img src="${currentJob.scopeImage}" alt="Scope" class="max-w-full h-auto mb-2" />
                 <button onclick="removeImage('scope')" class="p-1 bg-red-600 rounded text-white">Remove Image</button>
               ` : `
+                <textarea id="scope-text" class="w-full p-2 bg-white rounded border border-gray-300 mb-2" rows="5">${currentJob.scopeText || ''}</textarea>
                 ${renderDynamicTable(currentJob.scope, currentJob.scopeColumns, 'scope')}
                 <input type="file" id="scope-image" accept="image/*" class="mb-2" />
                 <input id="scope-new-column" placeholder="New Column Name" class="p-1 bg-white rounded border border-gray-300 mr-2" />
@@ -500,6 +538,7 @@
                 <img src="${currentJob.quoteImage}" alt="Quote" class="max-w-full h-auto mb-2" />
                 <button onclick="removeImage('quote')" class="p-1 bg-red-600 rounded text-white">Remove Image</button>
               ` : `
+                <textarea id="quote-text" class="w-full p-2 bg-white rounded border border-gray-300 mb-2" rows="5">${currentJob.quoteText || ''}</textarea>
                 ${renderDynamicTable(currentJob.quote, currentJob.quoteColumns, 'quote')}
                 <input id="quote-new-column" placeholder="New Column Name" class="p-1 bg-white rounded border border-gray-300 mr-2" />
                 <button onclick="addColumn('quote')" class="p-1 bg-blue-700 rounded text-white">Add Column</button>
@@ -712,10 +751,26 @@
       showJobPage(currentJob.id);
     };
 
-    // Image handling
-    function setupImageListeners() {
+    // Text and image handling
+    function setupTextAndImageListeners() {
+      const scopeText = document.getElementById('scope-text');
+      const quoteText = document.getElementById('quote-text');
       const scopeImage = document.getElementById('scope-image');
       const quoteImage = document.getElementById('quote-image');
+
+      if (scopeText) {
+        scopeText.addEventListener('input', () => {
+          currentJob.scopeText = scopeText.value;
+          localStorage.setItem('jobs', JSON.stringify(jobs));
+        });
+      }
+
+      if (quoteText) {
+        quoteText.addEventListener('input', () => {
+          currentJob.quoteText = quoteText.value;
+          localStorage.setItem('jobs', JSON.stringify(jobs));
+        });
+      }
 
       if (scopeImage) {
         scopeImage.addEventListener('change', (e) => {
@@ -724,6 +779,7 @@
             const reader = new FileReader();
             reader.onload = () => {
               currentJob.scopeImage = reader.result;
+              currentJob.scopeText = '';
               currentJob.scope = [{ id: generateUUID(), Description: '' }];
               currentJob.scopeColumns = [{ key: 'Description', label: 'Description' }];
               localStorage.setItem('jobs', JSON.stringify(jobs));
@@ -741,6 +797,7 @@
             const reader = new FileReader();
             reader.onload = () => {
               currentJob.quoteImage = reader.result;
+              currentJob.quoteText = '';
               currentJob.quote = [{ id: generateUUID(), Description: '' }];
               currentJob.quoteColumns = [{ key: 'Description', label: 'Description' }];
               localStorage.setItem('jobs', JSON.stringify(jobs));
@@ -797,7 +854,7 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
       }
 
-      setupImageListeners();
+      setupTextAndImageListeners();
     }
 
     // Initial render
