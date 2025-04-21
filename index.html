@@ -5,20 +5,128 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invictus Construction Sarnia</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.4.3/dist/umd/react-router-dom.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-beautiful-dnd@13.1.1/dist/react-beautiful-dnd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
+  <style>
+    body { background-color: #ffffff; color: #1f2937; font-family: sans-serif; }
+    .draggable { cursor: move; }
+    .draggable.dragging { opacity: 0.5; }
+    .calendar-day { min-height: 100px; border: 1px solid #e5e7eb; padding: 4px; }
+    .calendar-day.today { background-color: #e0f2fe; }
+    .editable:hover { background-color: #f3f4f6; }
+  </style>
 </head>
-<body class="bg-gray-900 text-white font-sans">
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect } = React;
-    const { BrowserRouter, Routes, Route, Link, useNavigate, useParams } = ReactRouterDOM;
-    const { DragDropContext, Droppable, Draggable } = ReactBeautifulDnd;
+<body class="min-h-screen pt-16">
+  <!-- Navbar -->
+  <nav class="bg-blue-900 text-white fixed w-full top-0 z-10 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+      <h1 class="text-xl font-bold">Invictus Construction Sarnia</h1>
+      <div id="nav-links" class="flex space-x-4">
+        <a href="#home" class="hover:text-gray-300">Home</a>
+        <button id="logout-btn" class="hover:text-gray-300 hidden">Logout</button>
+      </div>
+    </div>
+  </nav>
 
-    // Utility to generate UUID
+  <!-- Login Page -->
+  <div id="login-page" class="flex items-center justify-center h-screen">
+    <div class="bg-gray-100 p-8 rounded-lg shadow-lg">
+      <h2 class="text-2xl font-bold mb-4">Login</h2>
+      <form id="login-form">
+        <input
+          type="text"
+          id="username"
+          placeholder="Username"
+          class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+        />
+        <input
+          type="password"
+          id="password"
+          placeholder="Password"
+          class="w-full p-2 mb-4 bg-white rounded border border-gray-300 text-gray-900"
+        />
+        <button type="submit" class="w-full p-2 bg-blue-700 rounded hover:bg-blue-600 text-white">
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Home Page -->
+  <div id="home-page" class="max-w-7xl mx-auto p-4 flex hidden">
+    <div class="flex-1">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center">
+          <div id="logo-container" class="mr-4">
+            <input type="file" id="logo-upload" accept="image/*" class="hidden" />
+            <label for="logo-upload" class="cursor-pointer p-2 bg-blue-700 rounded hover:bg-blue-600 text-white">Upload Logo</label>
+          </div>
+          <h2 class="text-2xl font-bold">Upcoming Jobs</h2>
+        </div>
+      </div>
+      <div id="jobs-table" class="overflow-x-auto mb-8">
+        <table class="min-w-full bg-white rounded border border-gray-300">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="p-2 text-left border-b">Job Name</th>
+              <th class="p-2 text-left border-b">Address</th>
+              <th class="p-2 text-left border-b">Progress</th>
+              <th class="p-2 text-left border-b">Start Date</th>
+              <th class="p-2 text-left border-b">End Date</th>
+              <th class="p-2 text-left border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-table-body"></tbody>
+          <tr>
+            <td class="p-2 border-b"><input id="new-job-name" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
+            <td class="p-2 border-b"><input id="new-job-address" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
+            <td class="p-2 border-b">
+              <select id="new-job-progress" class="p-1 bg-white rounded w-full border border-gray-300"></select>
+            </td>
+            <td class="p-2 border-b"><input type="date" id="new-job-start" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
+            <td class="p-2 border-b"><input type="date" id="new-job-end" class="p-1 bg-white rounded w-full border border-gray-300" /></td>
+            <td class="p-2 border-b">
+              <button id="add-job-btn" class="p-1 bg-blue-700 rounded text-white">Add</button>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="bg-white p-4 rounded border border-gray-300">
+        <h3 class="text-lg font-bold mb-4">Settings</h3>
+        <div class="mb-4">
+          <h4 class="font-bold">Progress Presets</h4>
+          <div id="progress-presets" class="mb-2"></div>
+          <input id="progress-value" placeholder="Value (%)" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+          <input id="progress-label" placeholder="Label" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+          <input id="progress-color" type="color" class="p-1 rounded mr-2" />
+          <button id="add-progress-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
+        </div>
+        <div>
+          <h4 class="font-bold">Location Presets</h4>
+          <div id="location-presets" class="mb-2"></div>
+          <input id="location-value" placeholder="Location" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+          <button id="add-location-preset" class="p-1 bg-blue-700 rounded text-white">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="w-1/3 p-4">
+      <div id="calendar" class="bg-white p-4 rounded border border-gray-300">
+        <div class="flex justify-between mb-4">
+          <button id="prev-month" class="p-1 bg-blue-700 rounded text-white">&lt;</button>
+          <h3 id="calendar-month" class="text-lg font-bold"></h3>
+          <button id="next-month" class="p-1 bg-blue-700 rounded text-white">&gt;</button>
+        </div>
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Job Page -->
+  <div id="job-page" class="max-w-7xl mx-auto p-4 hidden">
+    <h2 id="job-title" class="text-2xl font-bold mb-4"></h2>
+    <div id="job-sections" class="space-y-4"></div>
+  </div>
+
+  <script>
+    // Utility functions
     function generateUUID() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
         const r = Math.random() * 16 | 0;
@@ -26,509 +134,679 @@
       });
     }
 
-    // Login Component
-    const Login = ({ setAuthenticated }) => {
-      const [username, setUsername] = useState('');
-      const [password, setPassword] = useState('');
-      const navigate = useNavigate();
+    // State management
+    let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+    let progressPresets = JSON.parse(localStorage.getItem('progressPresets')) || [
+      { value: '0', label: '0%', color: '#EF4444' },
+      { value: '25', label: '25%', color: '#F59E0B' },
+      { value: '50', label: '50%', color: '#3B82F6' },
+      { value: '75', label: '75%', color: '#10B981' },
+      { value: '100', label: '100%', color: '#4CAF50' }
+    ];
+    let locationPresets = JSON.parse(localStorage.getItem('locationPresets')) || [
+      { value: 'Site A', color: '#4CAF50' },
+      { value: 'Site B', color: '#2196F3' },
+      { value: 'Site C', color: '#FFC107' }
+    ];
+    let currentJob = null;
+    let isAuthenticated = localStorage.getItem('auth') === 'true';
+    let currentDate = new Date();
 
-      const handleLogin = (e) => {
-        e.preventDefault();
-        if (username === 'admin' && password === 'password') {
-          localStorage.setItem('auth', 'true');
-          setAuthenticated(true);
-          navigate('/home');
-        } else {
-          alert('Invalid credentials');
-        }
-      };
+    // Page management
+    const loginPage = document.getElementById('login-page');
+    const homePage = document.getElementById('home-page');
+    const jobPage = document.getElementById('job-page');
+    const logoutBtn = document.getElementById('logout-btn');
 
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold mb-4">Login</h2>
-            <form onSubmit={handleLogin}>
-              <input
-                type="text"
-                placeholder="Username"
-                className="w-full p-2 mb-4 bg-gray-700 rounded"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full p-2 mb-4 bg-gray-700 rounded"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button type="submit" className="w-full p-2 bg-blue-700 rounded hover:bg-blue-600">
-                Login
-              </button>
-            </form>
-          </div>
-        </div>
-      );
+    function showPage(page) {
+      loginPage.classList.add('hidden');
+      homePage.classList.add('hidden');
+      jobPage.classList.add('hidden');
+      page.classList.remove('hidden');
+    }
+
+    function checkAuth() {
+      if (isAuthenticated) {
+        showPage(homePage);
+        logoutBtn.classList.remove('hidden');
+      } else {
+        showPage(loginPage);
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    // Login handling
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username === 'admin' && password === 'password') {
+        localStorage.setItem('auth', 'true');
+        isAuthenticated = true;
+        checkAuth();
+        renderHome();
+      } else {
+        alert('Invalid credentials');
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('auth');
+      isAuthenticated = false;
+      checkAuth();
+    });
+
+    // Logo upload
+    document.getElementById('logo-upload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          localStorage.setItem('logo', reader.result);
+          const logoContainer = document.getElementById('logo-container');
+          logoContainer.innerHTML = `<img src="${reader.result}" alt="Logo" class="h-12" />`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    if (localStorage.getItem('logo')) {
+      document.getElementById('logo-container').innerHTML = `<img src="${localStorage.getItem('logo')}" alt="Logo" class="h-12" />`;
+    }
+
+    // Jobs table rendering
+    function renderJobsTable() {
+      const tbody = document.getElementById('jobs-table-body');
+      tbody.innerHTML = '';
+      jobs.forEach(job => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2 border-b">
+            <div contenteditable="true" class="editable p-1" onblur="updateJob('${job.id}', 'name', this.innerText)">${job.name}</div>
+          </td>
+          <td class="p-2 border-b">
+            <div contenteditable="true" class="editable p-1" onblur="updateJob('${job.id}', 'address', this.innerText)">${job.address}</div>
+          </td>
+          <td class="p-2 border-b">
+            <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateJob('${job.id}', 'progress', this.value)">
+              ${progressPresets.map(p => `
+                <option value="${p.value}" style="background-color: ${p.color}" ${job.progress === p.value ? 'selected' : ''}>${p.label}</option>
+              `).join('')}
+            </select>
+          </td>
+          <td class="p-2 border-b">
+            <input type="date" value="${job.startDate}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateJob('${job.id}', 'startDate', this.value)" />
+          </td>
+          <td class="p-2 border-b">
+            <input type="date" value="${job.endDate}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateJob('${job.id}', 'endDate', this.value)" />
+          </td>
+          <td class="p-2 border-b">
+            <button onclick="showJobPage('${job.id}')" class="p-1 bg-blue-600 rounded mr-2 text-white">View</button>
+            <button onclick="deleteJob('${job.id}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      renderCalendar();
+      renderProgressPresets();
+      renderLocationPresets();
+      const progressSelect = document.getElementById('new-job-progress');
+      progressSelect.innerHTML = progressPresets.map(p => `
+        <option value="${p.value}" style="background-color: ${p.color}">${p.label}</option>
+      `).join('');
+    }
+
+    window.updateJob = (id, field, value) => {
+      const job = jobs.find(j => j.id === id);
+      if (job) {
+        job[field] = value;
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        renderJobsTable();
+      }
     };
 
-    // Editable Table Component
-    const EditableTable = ({ data, setData, columns, presets }) => {
-      const [newRow, setNewRow] = useState({});
-      const [editingRow, setEditingRow] = useState(null);
+    // Add job
+    document.getElementById('add-job-btn').addEventListener('click', () => {
+      const name = document.getElementById('new-job-name').value;
+      const address = document.getElementById('new-job-address').value;
+      const progress = document.getElementById('new-job-progress').value;
+      const startDate = document.getElementById('new-job-start').value;
+      const endDate = document.getElementById('new-job-end').value;
+      if (name && address && progress && startDate && endDate) {
+        jobs.push({
+          id: generateUUID(),
+          name,
+          address,
+          progress,
+          startDate,
+          endDate,
+          revenue: [],
+          expenses: [],
+          scope: [{ id: generateUUID(), Description: '' }],
+          scopeColumns: [{ key: 'Description', label: 'Description' }],
+          quote: [{ id: generateUUID(), Description: '' }],
+          quoteColumns: [{ key: 'Description', label: 'Description' }],
+          scopeImage: null,
+          quoteImage: null
+        });
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        renderJobsTable();
+        document.getElementById('new-job-name').value = '';
+        document.getElementById('new-job-address').value = '';
+        document.getElementById('new-job-progress').value = progressPresets[0].value;
+        document.getElementById('new-job-start').value = '';
+        document.getElementById('new-job-end').value = '';
+      }
+    });
 
-      const handleAddRow = () => {
-        if (Object.values(newRow).every(val => val)) {
-          setData([...data, { id: generateUUID(), ...newRow }]);
-          setNewRow({});
-        }
-      };
+    // Delete job
+    window.deleteJob = (id) => {
+      jobs = jobs.filter(j => j.id !== id);
+      localStorage.setItem('jobs', JSON.stringify(jobs));
+      renderJobsTable();
+    };
 
-      const handleEditRow = (row) => {
-        setEditingRow(row);
-      };
+    // Presets management
+    function renderProgressPresets() {
+      const presetsDiv = document.getElementById('progress-presets');
+      presetsDiv.innerHTML = '';
+      progressPresets.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center mb-2';
+        div.innerHTML = `
+          <span class="mr-2" style="color: ${p.color}">${p.label} (${p.value}%)</span>
+          <button onclick="deleteProgressPreset('${p.value}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+        `;
+        presetsDiv.appendChild(div);
+      });
+    }
 
-      const handleSaveEdit = () => {
-        setData(data.map(item => item.id === editingRow.id ? editingRow : item));
-        setEditingRow(null);
-      };
+    window.deleteProgressPreset = (value) => {
+      progressPresets = progressPresets.filter(p => p.value !== value);
+      localStorage.setItem('progressPresets', JSON.stringify(progressPresets));
+      renderJobsTable();
+    };
 
-      const handleDeleteRow = (id) => {
-        setData(data.filter(item => item.id !== id));
-      };
+    document.getElementById('add-progress-preset').addEventListener('click', () => {
+      const value = document.getElementById('progress-value').value;
+      const label = document.getElementById('progress-label').value;
+      const color = document.getElementById('progress-color').value;
+      if (value && label && color) {
+        progressPresets.push({ value, label, color });
+        localStorage.setItem('progressPresets', JSON.stringify(progressPresets));
+        renderJobsTable();
+        document.getElementById('progress-value').value = '';
+        document.getElementById('progress-label').value = '';
+        document.getElementById('progress-color').value = '#000000';
+      }
+    });
 
-      const handleColumnChange = (key, value, isNew = false) => {
-        if (isNew) {
-          setNewRow({ ...newRow, [key]: value });
-        } else {
-          setEditingRow({ ...editingRow, [key]: value });
-        }
-      };
+    function renderLocationPresets() {
+      const presetsDiv = document.getElementById('location-presets');
+      presetsDiv.innerHTML = '';
+      locationPresets.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center mb-2';
+        div.innerHTML = `
+          <span class="mr-2" style="color: ${p.color}">${p.value}</span>
+          <button onclick="deleteLocationPreset('${p.value}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+        `;
+        presetsDiv.appendChild(div);
+      });
+    }
 
-      return (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-gray-800 rounded">
-            <thead>
+    window.deleteLocationPreset = (value) => {
+      locationPresets = locationPresets.filter(p => p.value !== value);
+      localStorage.setItem('locationPresets', JSON.stringify(locationPresets));
+      renderJobsTable();
+    };
+
+    document.getElementById('add-location-preset').addEventListener('click', () => {
+      const value = document.getElementById('location-value').value;
+      if (value) {
+        locationPresets.push({ value, color: '#000000' });
+        localStorage.setItem('locationPresets', JSON.stringify(locationPresets));
+        renderJobsTable();
+        document.getElementById('location-value').value = '';
+      }
+    });
+
+    // Calendar rendering
+    function renderCalendar() {
+      const monthDisplay = document.getElementById('calendar-month');
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      monthDisplay.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+      for (let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day';
+        grid.appendChild(div);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const div = document.createElement('div');
+        div.className = `calendar-day ${isCurrentMonth && day === today.getDate() ? 'today' : ''}`;
+        div.innerHTML = `<div class="font-bold">${day}</div>`;
+        const dayDate = new Date(year, month, day).toISOString().split('T')[0];
+        jobs.forEach(job => {
+          if (job.startDate === dayDate || job.endDate === dayDate) {
+            const jobDiv = document.createElement('div');
+            jobDiv.className = 'text-sm cursor-pointer hover:underline';
+            jobDiv.textContent = job.name;
+            jobDiv.onclick = () => showJobPage(job.id);
+            div.appendChild(jobDiv);
+          }
+        });
+        grid.appendChild(div);
+      }
+    }
+
+    document.getElementById('prev-month').addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('next-month').addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    // Job page rendering
+    window.showJobPage = (jobId) => {
+      currentJob = jobs.find(j => j.id === jobId);
+      if (!currentJob) return;
+      showPage(jobPage);
+      document.getElementById('job-title').textContent = currentJob.name;
+      const sections = document.getElementById('job-sections');
+      sections.innerHTML = '';
+      const layout = [
+        { id: 'tables', type: 'tables' },
+        { id: 'scope', type: 'table' },
+        { id: 'quote', type: 'table' }
+      ];
+      layout.forEach(section => {
+        const div = document.createElement('div');
+        div.className = 'border border-gray-300 rounded draggable';
+        div.draggable = true;
+        div.dataset.id = section.id;
+        div.innerHTML = renderSection(section.id);
+        sections.appendChild(div);
+      });
+      setupDragAndDrop();
+    };
+
+    function renderSection(id) {
+      switch (id) {
+        case 'tables':
+          return `
+            <div class="bg-white p-4 rounded flex space-x-4">
+              <div class="flex-1">
+                <h3 class="text-lg font-bold mb-2">Revenue</h3>
+                ${renderTable(currentJob.revenue, 'revenue', [
+                  { key: 'date', label: 'Date', type: 'date' },
+                  { key: 'purchase', label: 'Purchase', type: 'text' },
+                  { key: 'method', label: 'Method', type: 'select', options: [
+                    { value: 'Cash', color: '#4CAF50' },
+                    { value: 'Credit', color: '#2196F3' },
+                    { value: 'Check', color: '#FFC107' }
+                  ]},
+                  { key: 'cost', label: 'Cost', type: 'text' },
+                  { key: 'location', label: 'Location', type: 'select', options: locationPresets }
+                ])}
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-bold mb-2">Expenses</h3>
+                ${renderTable(currentJob.expenses, 'expenses', [
+                  { key: 'date', label: 'Date', type: 'date' },
+                  { key: 'purchase', label: 'Purchase', type: 'text' },
+                  { key: 'method', label: 'Method', type: 'select', options: [
+                    { value: 'Cash', color: '#4CAF50' },
+                    { value: 'Credit', color: '#2196F3' },
+                    { value: 'Check', color: '#FFC107' }
+                  ]},
+                  { key: 'cost', label: 'Cost', type: 'text' },
+                  { key: 'location', label: 'Location', type: 'select', options: locationPresets }
+                ])}
+              </div>
+            </div>
+          `;
+        case 'scope':
+          return `
+            <div class="bg-white p-4 rounded">
+              <h3 class="text-lg font-bold mb-2">Job Scope</h3>
+              ${currentJob.scopeImage ? `
+                <img src="${currentJob.scopeImage}" alt="Scope" class="max-w-full h-auto mb-2" />
+                <button onclick="removeImage('scope')" class="p-1 bg-red-600 rounded text-white">Remove Image</button>
+              ` : `
+                ${renderDynamicTable(currentJob.scope, currentJob.scopeColumns, 'scope')}
+                <input type="file" id="scope-image" accept="image/*" class="mb-2" />
+                <input id="scope-new-column" placeholder="New Column Name" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+                <button onclick="addColumn('scope')" class="p-1 bg-blue-700 rounded text-white">Add Column</button>
+              `}
+            </div>
+          `;
+        case 'quote':
+          return `
+            <div class="bg-white p-4 rounded">
+              <h3 class="text-lg font-bold mb-2">Job Quote</h3>
+              ${currentJob.quoteImage ? `
+                <img src="${currentJob.quoteImage}" alt="Quote" class="max-w-full h-auto mb-2" />
+                <button onclick="removeImage('quote')" class="p-1 bg-red-600 rounded text-white">Remove Image</button>
+              ` : `
+                ${renderDynamicTable(currentJob.quote, currentJob.quoteColumns, 'quote')}
+                <input id="quote-new-column" placeholder="New Column Name" class="p-1 bg-white rounded border border-gray-300 mr-2" />
+                <button onclick="addColumn('quote')" class="p-1 bg-blue-700 rounded text-white">Add Column</button>
+              `}
+            </div>
+          `;
+        default:
+          return '';
+      }
+    }
+
+    function renderTable(data, type, columns) {
+      const total = data.reduce((sum, row) => sum + (parseFloat(row.cost) || 0), 0).toFixed(2);
+      return `
+        <table class="min-w-full bg-white rounded border border-gray-300">
+          <thead>
+            <tr class="bg-gray-100">
+              ${columns.map(col => `<th class="p-2 text-left border-b">${col.label}</th>`).join('')}
+              <th class="p-2 text-left border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="${type}-table-body">
+            ${data.map(row => `
               <tr>
-                {columns.map(col => (
-                  <th key={col.key} className="p-2 text-left">{col.label}</th>
-                ))}
-                <th className="p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id}>
-                  {columns.map(col => (
-                    <td key={col.key} className="p-2">
-                      {editingRow && editingRow.id === row.id ? (
-                        col.options ? (
-                          <select
-                            className="p-1 bg-gray-700 rounded"
-                            value={editingRow[col.key] || ''}
-                            onChange={(e) => handleColumnChange(col.key, e.target.value)}
-                          >
-                            {col.options.map(opt => (
-                              <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.color }}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            className="p-1 bg-gray-700 rounded"
-                            value={editingRow[col.key] || ''}
-                            onChange={(e) => handleColumnChange(col.key, e.target.value)}
-                          />
-                        )
-                      ) : (
-                        <span style={{ color: col.options?.find(opt => opt.value === row[col.key])?.color }}>
-                          {row[col.key]}
-                        </span>
-                      )}
-                    </td>
-                  ))}
-                  <td className="p-2">
-                    {editingRow && editingRow.id === row.id ? (
-                      <button onClick={handleSaveEdit} className="p-1 bg-green-600 rounded mr-2">Save</button>
-                    ) : (
-                      <button onClick={() => handleEditRow(row)} className="p-1 bg-blue-600 rounded mr-2">Edit</button>
-                    )}
-                    <button onClick={() => handleDeleteRow(row.id)} className="p-1 bg-red-600 rounded">Delete</button>
-                  </td>
-                </tr>
-              ))}
-              <tr>
-                {columns.map(col => (
-                  <td key={col.key} className="p-2">
-                    {col.options ? (
-                      <select
-                        className="p-1 bg-gray-700 rounded"
-                        value={newRow[col.key] || ''}
-                        onChange={(e) => handleColumnChange(col.key, e.target.value, true)}
-                      >
+                ${columns.map(col => `
+                  <td class="p-2 border-b">
+                    ${col.type === 'select' ? `
+                      <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)">
                         <option value="">Select</option>
-                        {col.options.map(opt => (
-                          <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.color }}>
-                            {opt.label}
-                          </option>
-                        ))}
+                        ${col.options.map(opt => `
+                          <option value="${opt.value}" style="background-color: ${opt.color}" ${row[col.key] === opt.value ? 'selected' : ''}>${opt.value}</option>
+                        `).join('')}
                       </select>
-                    ) : (
-                      <input
-                        className="p-1 bg-gray-700 rounded"
-                        value={newRow[col.key] || ''}
-                        onChange={(e) => handleColumnChange(col.key, e.target.value, true)}
-                      />
-                    )}
+                    ` : col.type === 'date' ? `
+                      <input type="date" value="${row[col.key]}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)" />
+                    ` : `
+                      <div contenteditable="true" class="editable p-1" onblur="updateRow('${type}', '${row.id}', '${col.key}', this.innerText)">${row[col.key]}</div>
+                    `}
                   </td>
-                ))}
-                <td className="p-2">
-                  <button onClick={handleAddRow} className="p-1 bg-blue-700 rounded">Add</button>
+                `).join('')}
+                <td class="p-2 border-b">
+                  <button onclick="deleteRow('${type}', '${row.id}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-      );
-    };
+            `).join('')}
+            <tr>
+              ${columns.map(col => `
+                <td class="p-2 border-b">
+                  ${col.type === 'select' ? `
+                    <select id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300">
+                      <option value="">Select</option>
+                      ${col.options.map(opt => `
+                        <option value="${opt.value}" style="background-color: ${opt.color}">${opt.value}</option>
+                      `).join('')}
+                    </select>
+                  ` : `
+                    <input type="${col.type === 'date' ? 'date' : 'text'}" id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300" />
+                  `}
+                </td>
+              `).join('')}
+              <td class="p-2 border-b">
+                <button onclick="addRow('${type}')" class="p-1 bg-blue-700 rounded text-white">Add</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="p-2 border-b font-bold" colspan="${columns.length - 1}">Total</td>
+              <td class="p-2 border-b font-bold">$${total}</td>
+              <td class="p-2 border-b"></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
 
-    // Schedule Component
-    const Schedule = ({ jobs }) => {
-      return (
-        <div className="bg-gray-800 p-4 rounded h-full overflow-y-auto">
-          <h3 className="text-lg font-bold mb-4">Schedule</h3>
-          <div className="space-y-4">
-            {jobs.map(job => (
-              <div key={job.id} className="bg-gray-700 p-2 rounded">
-                <p className="font-bold">{job.name}</p>
-                <p className="text-sm">Start: {job.startDate}</p>
-                <p className="text-sm">End: {job.endDate}</p>
-                <div className="mt-2">
-                  <div className="h-2 bg-gray-600 rounded">
-                    <div
-                      className="h-2 bg-blue-600 rounded"
-                      style={{ width: `${job.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    };
+    function renderDynamicTable(data, columns, type) {
+      return `
+        <table class="min-w-full bg-white rounded border border-gray-300">
+          <thead>
+            <tr class="bg-gray-100">
+              ${columns.map(col => `
+                <th class="p-2 text-left border-b">
+                  ${col.label}
+                  <button onclick="deleteColumn('${type}', '${col.key}')" class="ml-2 p-1 bg-red-600 rounded text-white text-sm">X</button>
+                </th>
+              `).join('')}
+              <th class="p-2 text-left border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="${type}-table-body">
+            ${data.map(row => `
+              <tr>
+                ${columns.map(col => `
+                  <td class="p-2 border-b">
+                    <div contenteditable="true" class="editable p-1" onblur="updateDynamicRow('${type}', '${row.id}', '${col.key}', this.innerText)">${row[col.key]}</div>
+                  </td>
+                `).join('')}
+                <td class="p-2 border-b">
+                  <button onclick="deleteDynamicRow('${type}', '${row.id}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+                </td>
+              </tr>
+            `).join('')}
+            <tr>
+              ${columns.map(col => `
+                <td class="p-2 border-b">
+                  <input id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300" />
+                </td>
+              `).join('')}
+              <td class="p-2 border-b">
+                <button onclick="addDynamicRow('${type}')" class="p-1 bg-blue-700 rounded text-white">Add</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
 
-    // Job Page Component
-    const JobPage = () => {
-      const { jobId } = useParams();
-      const [jobs, setJobs] = useState(JSON.parse(localStorage.getItem('jobs')) || []);
-      const job = jobs.find(j => j.id === jobId) || {};
-      const [layout, setLayout] = useState([
-        { id: 'revenue', type: 'table' },
-        { id: 'expenses', type: 'table' },
-        { id: 'scope', type: 'text' },
-        { id: 'quote', type: 'text' },
-      ]);
-      const [revenueData, setRevenueData] = useState(job.revenue || []);
-      const [expensesData, setExpensesData] = useState(job.expenses || []);
-      const [scope, setScope] = useState(job.scope || '');
-      const [quote, setQuote] = useState(job.quote || '');
-      const [scopeImage, setScopeImage] = useState(job.scopeImage || null);
-      const [quoteImage, setQuoteImage] = useState(job.quoteImage || null);
-
-      useEffect(() => {
-        const updatedJobs = jobs.map(j =>
-          j.id === jobId
-            ? { ...j, revenue: revenueData, expenses: expensesData, scope, quote, scopeImage, quoteImage }
-            : j
-        );
-        localStorage.setItem('jobs', JSON.stringify(updatedJobs));
-      }, [revenueData, expensesData, scope, quote, scopeImage, quoteImage]);
-
-      const onDragEnd = (result) => {
-        if (!result.destination) return;
-        const reorderedLayout = [...layout];
-        const [moved] = reorderedLayout.splice(result.source.index, 1);
-        reorderedLayout.splice(result.destination.index, 0, moved);
-        setLayout(reorderedLayout);
-      };
-
-      const handleImageUpload = (e, setImage) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => setImage(reader.result);
-          reader.readAsDataURL(file);
-        }
-      };
-
-      const revenueColumns = [
-        { key: 'date', label: 'Date' },
-        { key: 'purchase', label: 'Purchase' },
-        { key: 'method', label: 'Method', options: [
-          { value: 'Cash', label: 'Cash', color: '#4CAF50' },
-          { value: 'Credit', label: 'Credit', color: '#2196F3' },
-          { value: 'Check', label: 'Check', color: '#FFC107' },
-        ]},
-        { key: 'cost', label: 'Cost' },
-        { key: 'location', label: 'Location' },
-      ];
-
-      const expensesColumns = [
-        { key: 'date', label: 'Date' },
-        { key: 'purchase', label: 'Purchase' },
-        { key: 'method', label: 'Method', options: [
-          { value: 'Cash', label: 'Cash', color: '#4CAF50' },
-          { value: 'Credit', label: 'Credit', color: '#2196F3' },
-          { value: 'Check', label: 'Check', color: '#FFC107' },
-        ]},
-        { key: 'cost', label: 'Cost' },
-        { key: 'location', label: 'Location' },
-      ];
-
-      const renderSection = (section) => {
-        switch (section.id) {
-          case 'revenue':
-            return (
-              <div className="bg-gray-800 p-4 rounded">
-                <h3 className="text-lg font-bold mb-2">Revenue</h3>
-                <EditableTable data={revenueData} setData={setRevenueData} columns={revenueColumns} />
-              </div>
-            );
-          case 'expenses':
-            return (
-              <div className="bg-gray-800 p-4 rounded">
-                <h3 className="text-lg font-bold mb-2">Expenses</h3>
-                <EditableTable data={expensesData} setData={setExpensesData} columns={expensesColumns} />
-              </div>
-            );
-          case 'scope':
-            return (
-              <div className="bg-gray-800 p-4 rounded">
-                <h3 className="text-lg font-bold mb-2">Job Scope</h3>
-                {scopeImage ? (
-                  <div>
-                    <img src={scopeImage} alt="Scope" className="max-w-full h-auto mb-2" />
-                    <button
-                      onClick={() => setScopeImage(null)}
-                      className="p-1 bg-red-600 rounded"
-                    >
-                      Remove Image
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <textarea
-                      className="w-full p-2 bg-gray-700 rounded mb-2"
-                      value={scope}
-                      onChange={(e) => setScope(e.target.value)}
-                      rows="5"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, setScopeImage)}
-                      className="mb-2"
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          case 'quote':
-            return (
-              <div className="bg-gray-800 p-4 rounded">
-                <h3 className="text-lg font-bold mb-2">Job Quote</h3>
-                {quoteImage ? (
-                  <div>
-                    <img src={quoteImage} alt="Quote" className="max-w-full h-auto mb-2" />
-                    <button
-                      onClick={() => setQuoteImage(null)}
-                      className="p-1 bg-red-600 rounded"
-                    >
-                      Remove Image
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <textarea
-                      className="w-full p-2 bg-gray-700 rounded mb-2"
-                      value={quote}
-                      onChange={(e) => setQuote(e.target.value)}
-                      rows="5"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, setQuoteImage)}
-                      className="mb-2"
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          default:
-            return null;
-        }
-      };
-
-      return (
-        <div className="max-w-7xl mx-auto p-4">
-          <h2 className="text-2xl font-bold mb-4">{job.name}</h2>
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="layout">
-              {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                  {layout.map((section, index) => (
-                    <Draggable key={section.id} draggableId={section.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="border border-gray-700 rounded"
-                        >
-                          {renderSection(section)}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </div>
-      );
-    };
-
-    // Home Page Component
-    const Home = () => {
-      const [jobs, setJobs] = useState(JSON.parse(localStorage.getItem('jobs')) || []);
-      const [newJob, setNewJob] = useState({});
-      const [logo, setLogo] = useState(localStorage.getItem('logo') || null);
-
-      useEffect(() => {
-        localStorage.setItem('jobs', JSON.stringify(jobs));
-      }, [jobs]);
-
-      const handleAddJob = () => {
-        if (Object.values(newJob).every(val => val)) {
-          setJobs([...jobs, { id: generateUUID(), ...newJob, revenue: [], expenses: [], scope: '', quote: '' }]);
-          setNewJob({});
-        }
-      };
-
-      const handleDeleteJob = (id) => {
-        setJobs(jobs.filter(job => job.id !== id));
-      };
-
-      const handleLogoUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            setLogo(reader.result);
-            localStorage.setItem('logo', reader.result);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-
+    window.addRow = (type) => {
+      const newRow = { id: generateUUID() };
       const columns = [
-        { key: 'name', label: 'Job Name' },
-        { key: 'address', label: 'Address' },
-        { key: 'progress', label: 'Progress (%)', options: [
-          { value: '0', label: '0%', color: '#EF4444' },
-          { value: '25', label: '25%', color: '#F59E0B' },
-          { value: '50', label: '50%', color: '#3B82F6' },
-          { value: '75', label: '75%', color: '#10B981' },
-          { value: '100', label: '100%', color: '#4CAF50' },
-        ]},
-        { key: 'startDate', label: 'Start Date' },
-        { key: 'endDate', label: 'End Date' },
+        { key: 'date', type: 'date' },
+        { key: 'purchase', type: 'text' },
+        { key: 'method', type: 'select' },
+        { key: 'cost', type: 'text' },
+        { key: 'location', type: 'select' }
       ];
-
-      return (
-        <div className="flex">
-          <div className="flex-1 max-w-7xl mx-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center">
-                {logo ? (
-                  <img src={logo} alt="Logo" className="h-12 mr-4" />
-                ) : (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="mb-4"
-                  />
-                )}
-                <h2 className="text-2xl font-bold">Upcoming Jobs</h2>
-              </div>
-            </div>
-            <EditableTable data={jobs} setData={setJobs} columns={columns} />
-            <div className="mt-4">
-              {jobs.map(job => (
-                <Link
-                  key={job.id}
-                  to={`/job/${job.id}`}
-                  className="block p-2 bg-blue-700 rounded mb-2 hover:bg-blue-600"
-                >
-                  View {job.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="w-1/4 p-4">
-            <Schedule jobs={jobs} />
-          </div>
-        </div>
-      );
+      let valid = true;
+      columns.forEach(col => {
+        const input = document.getElementById(`new-${type}-${col.key}`);
+        if (input.value) {
+          newRow[col.key] = input.value;
+          input.value = '';
+        } else {
+          valid = false;
+        }
+      });
+      if (valid) {
+        currentJob[type].push(newRow);
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        showJobPage(currentJob.id);
+      }
     };
 
-    // App Component
-    const App = () => {
-      const [authenticated, setAuthenticated] = useState(localStorage.getItem('auth') === 'true');
-
-      return (
-        <BrowserRouter>
-          <nav className="bg-blue-900 text-white fixed w-full top-0 z-10 shadow-lg">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex items-center">
-                  <h1 className="text-xl font-bold">Invictus Construction Sarnia</h1>
-                </div>
-                {authenticated && (
-                  <div className="flex items-center space-x-4">
-                    <Link to="/home" className="hover:text-gray-300">Home</Link>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('auth');
-                        setAuthenticated(false);
-                      }}
-                      className="hover:text-gray-300"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </nav>
-          <div className="pt-16">
-            <Routes>
-              <Route path="/" element={authenticated ? <Home /> : <Login setAuthenticated={setAuthenticated} />} />
-              <Route path="/home" element={authenticated ? <Home /> : <Login setAuthenticated={setAuthenticated} />} />
-              <Route path="/job/:jobId" element={authenticated ? <JobPage /> : <Login setAuthenticated={setAuthenticated} />} />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      );
+    window.updateRow = (type, id, key, value) => {
+      const row = currentJob[type].find(r => r.id === id);
+      if (row) {
+        row[key] = value;
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        showJobPage(currentJob.id);
+      }
     };
 
-    // Render App
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    window.deleteRow = (type, id) => {
+      currentJob[type] = currentJob[type].filter(r => r.id !== id);
+      localStorage.setItem('jobs', JSON.stringify(jobs));
+      showJobPage(currentJob.id);
+    };
+
+    window.addDynamicRow = (type) => {
+      const newRow = { id: generateUUID() };
+      const columns = currentJob[`${type}Columns`];
+      let valid = true;
+      columns.forEach(col => {
+        const input = document.getElementById(`new-${type}-${col.key}`);
+        if (input.value) {
+          newRow[col.key] = input.value;
+          input.value = '';
+        } else {
+          valid = false;
+        }
+      });
+      if (valid) {
+        currentJob[type].push(newRow);
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        showJobPage(currentJob.id);
+      }
+    };
+
+    window.updateDynamicRow = (type, id, key, value) => {
+      const row = currentJob[type].find(r => r.id === id);
+      if (row) {
+        row[key] = value;
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        showJobPage(currentJob.id);
+      }
+    };
+
+    window.deleteDynamicRow = (type, id) => {
+      currentJob[type] = currentJob[type].filter(r => r.id !== id);
+      localStorage.setItem('jobs', JSON.stringify(jobs));
+      showJobPage(currentJob.id);
+    };
+
+    window.addColumn = (type) => {
+      const input = document.getElementById(`${type}-new-column`);
+      const label = input.value;
+      if (label) {
+        const key = label.toLowerCase().replace(/\s+/g, '_');
+        currentJob[`${type}Columns`].push({ key, label });
+        currentJob[type].forEach(row => row[key] = '');
+        localStorage.setItem('jobs', JSON.stringify(jobs));
+        showJobPage(currentJob.id);
+        input.value = '';
+      }
+    };
+
+    window.deleteColumn = (type, key) => {
+      currentJob[`${type}Columns`] = currentJob[`${type}Columns`].filter(col => col.key !== key);
+      currentJob[type].forEach(row => delete row[key]);
+      localStorage.setItem('jobs', JSON.stringify(jobs));
+      showJobPage(currentJob.id);
+    };
+
+    // Image handling
+    function setupImageListeners() {
+      const scopeImage = document.getElementById('scope-image');
+      const quoteImage = document.getElementById('quote-image');
+
+      if (scopeImage) {
+        scopeImage.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              currentJob.scopeImage = reader.result;
+              currentJob.scope = [{ id: generateUUID(), Description: '' }];
+              currentJob.scopeColumns = [{ key: 'Description', label: 'Description' }];
+              localStorage.setItem('jobs', JSON.stringify(jobs));
+              showJobPage(currentJob.id);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      if (quoteImage) {
+        quoteImage.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              currentJob.quoteImage = reader.result;
+              currentJob.quote = [{ id: generateUUID(), Description: '' }];
+              currentJob.quoteColumns = [{ key: 'Description', label: 'Description' }];
+              localStorage.setItem('jobs', JSON.stringify(jobs));
+              showJobPage(currentJob.id);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+    }
+
+    window.removeImage = (type) => {
+      currentJob[`${type}Image`] = null;
+      localStorage.setItem('jobs', JSON.stringify(jobs));
+      showJobPage(currentJob.id);
+    };
+
+    // Drag and drop
+    function setupDragAndDrop() {
+      const draggables = document.querySelectorAll('.draggable');
+      const container = document.getElementById('job-sections');
+
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', () => {
+          draggable.classList.add('dragging');
+        });
+
+        draggable.addEventListener('dragend', () => {
+          draggable.classList.remove('dragging');
+        });
+      });
+
+      container.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(container, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (afterElement == null) {
+          container.appendChild(dragging);
+        } else {
+          container.insertBefore(dragging, afterElement);
+        }
+      });
+
+      function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+          const box = child.getBoundingClientRect();
+          const offset = y - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+          } else {
+            return closest;
+          }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+      }
+
+      setupImageListeners();
+    }
+
+    // Initial render
+    function renderHome() {
+      renderJobsTable();
+    }
+
+    checkAuth();
+    if (isAuthenticated) renderHome();
   </script>
 </body>
 </html>
