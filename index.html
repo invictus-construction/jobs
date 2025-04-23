@@ -93,7 +93,7 @@
   </div>
 
   <!-- Home Page -->
-  <div id="home-page" class="mx-auto p-0 px-1 sm:max-w-7xl flex flex-col sm:flex-row hidden">
+  <div id="home-page" class="mx-auto p-0 px-0.5 sm:max-w-7xl flex flex-col sm:flex-row hidden">
     <div class="w-full sm:flex-1 sm:mr-2 mb-4 sm:mb-0">
       <div class="flex justify-between items-center mb-2 p-1">
         <div class="flex items-center">
@@ -172,7 +172,7 @@
   </div>
 
   <!-- Job Page -->
-  <div id="job-page" class="mx-auto p-1 px-2 sm:max-w-7xl hidden">
+  <div id="job-page" class="mx-auto p-0.5 px-1 sm:max-w-7xl hidden">
     <h2 id="job-title" class="text-2xl font-bold mb-2"></h2>
     <div id="job-sections" class="space-y-2"></div>
   </div>
@@ -646,7 +646,7 @@
               </div>
               <div class="flex-1">
                 <h3 class="text-lg font-bold mb-2">Expenses</h3>
-                ${renderTable(currentJob.expenses, 'expenses', [
+                ${renderTable(currentJob.expenses, 'expenses Reveals', [
                   { key: 'date', label: 'Date', type: 'date' },
                   { key: 'purchase', label: 'Purchase', type: 'text' },
                   { key: 'method', label: 'Method', type: 'select', options: [
@@ -808,7 +808,9 @@
     window.addRow = async type => {
       if (!auth.currentUser) return;
       const uid = auth.currentUser.uid;
-      const newRow = { id: generateUUID() };
+      const newRow = { id: generate
+
+UUID() };
       const columns = type === 'revenue' ? [
         { key: 'date', type: 'date' },
         { key: 'purchase', type: 'text' },
