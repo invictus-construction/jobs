@@ -158,17 +158,23 @@
     // State management
     let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
     let progressPresets = JSON.parse(localStorage.getItem('progressPresets')) || [
-      { value: '0', label: '0%', color: '#EF4444' },
-      { value: '25', label: '25%', color: '#F59E0B' },
-      { value: '50', label: '50%', color: '#3B82F6' },
-      { value: '75', label: '75%', color: '#10B981' },
-      { value: '100', label: '100%', color: '#4CAF50' }
-    ];
+  { value: '0', label: 'Not Started', color: '#EF4444' },
+  { value: '5', label: 'Started Planning', color: '#F97316' },
+  { value: '10', label: 'Planning Complete', color: '#F59E0B' },
+  { value: '25', label: 'Construction Started', color: '#3B82F6' },
+  { value: '75', label: 'Construction Complete', color: '#10B981' },
+  { value: '100', label: 'Complete and Paid', color: '#4CAF50' },
+  { value: '105', label: 'Follow Up', color: '#6B7280' }
+];
     let vendorPresets = JSON.parse(localStorage.getItem('vendorPresets')) || [
-      { value: 'Vendor A', color: '#4CAF50' },
-      { value: 'Vendor B', color: '#2196F3' },
-      { value: 'Vendor C', color: '#FFC107' }
-    ];
+  { value: 'TimberMart', color: '#16A34A' },
+  { value: 'Home Depot', color: '#EA580C' },
+  { value: 'Rona', color: '#2563EB' },
+  { value: 'Home Hardware', color: '#DC2626' },
+  { value: 'Tim Hortons', color: '#B91C1C' },
+  { value: 'Restaurant', color: '#7C3AED' },
+  { value: 'IKEA', color: '#CA8A04' }
+];
     let currentJob = null;
     let isAuthenticated = localStorage.getItem('auth') === 'true';
     let currentDate = new Date();
@@ -327,6 +333,8 @@
           quoteText: '',
           quote: [{ id: generateUUID(), Description: '' }],
           quoteColumns: [{ key: 'Description', label: 'Description' }],
+          hoursJosh: 0,
+          hoursTiger: 0,
           scopeImage: null,
           quoteImage: null
         });
@@ -495,10 +503,16 @@
                   { key: 'date', label: 'Date', type: 'date' },
                   { key: 'purchase', label: 'Purchase', type: 'text' },
                   { key: 'method', label: 'Method', type: 'select', options: [
-                    { value: 'Cash', color: '#4CAF50' },
-                    { value: 'Credit', color: '#2196F3' },
-                    { value: 'Check', color: '#FFC107' }
-                  ]},
+  { value: 'Cash', color: '#4CAF50' },
+  { value: 'Credit', color: '#2196F3' },
+  { value: "Josh's Credit Card", color: '#0EA5E9' },
+  { value: 'On Account', color: '#8B5CF6' },
+  { value: 'Restaurant', color: '#7C3AED' },
+  { value: 'Account Paid', color: '#4B5563' },
+  { value: 'Etransfer to ICS', color: '#14B8A6' },
+  { value: 'Cheque to ICS', color: '#A855F7' },
+  { value: 'Josh Paid', color: '#D97706' }
+]},
                   { key: 'cost', label: 'Cost', type: 'text' }
                 ])}
               </div>
@@ -508,10 +522,16 @@
                   { key: 'date', label: 'Date', type: 'date' },
                   { key: 'purchase', label: 'Purchase', type: 'text' },
                   { key: 'method', label: 'Method', type: 'select', options: [
-                    { value: 'Cash', color: '#4CAF50' },
-                    { value: 'Credit', color: '#2196F3' },
-                    { value: 'Check', color: '#FFC107' }
-                  ]},
+  { value: 'Cash', color: '#4CAF50' },
+  { value: 'Credit', color: '#2196F3' },
+  { value: "Josh's Credit Card", color: '#0EA5E9' },
+  { value: 'On Account', color: '#8B5CF6' },
+  { value: 'Restaurant', color: '#7C3AED' },
+  { value: 'Account Paid', color: '#4B5563' },
+  { value: 'Etransfer to ICS', color: '#14B8A6' },
+  { value: 'Cheque to ICS', color: '#A855F7' },
+  { value: 'Josh Paid', color: '#D97706' }
+]},
                   { key: 'cost', label: 'Cost', type: 'text' },
                   { key: 'vendor', label: 'Vendor/Supplier', type: 'select', options: vendorPresets }
                 ])}
@@ -521,7 +541,20 @@
         case 'scope':
           return `
             <div class="bg-white p-4 rounded">
-              <h3 class="text-lg font-bold mb-2">Job Scope</h3>
+              
+<h4 class="text-md font-semibold mb-1">Hours</h4>
+<div class="grid grid-cols-2 gap-2 mb-4">
+  <div>
+    <label>Josh:</label>
+    <input type="number" class="p-1 bg-white rounded border border-gray-300 w-full" value="${currentJob.hoursJosh || 0}" onchange="updateJob('${currentJob.id}', 'hoursJosh', this.value)" />
+  </div>
+  <div>
+    <label>Tiger:</label>
+    <input type="number" class="p-1 bg-white rounded border border-gray-300 w-full" value="${currentJob.hoursTiger || 0}" onchange="updateJob('${currentJob.id}', 'hoursTiger', this.value)" />
+  </div>
+</div>
+
+<h3 class="text-lg font-bold mb-2">Job Scope</h3>
               ${currentJob.scopeImage ? `
                 <img src="${currentJob.scopeImage}" alt="Scope" class="max-w-full h-auto mb-2" />
                 <button onclick="removeImage('scope')" class="p-1 bg-red-600 rounded text-white">Remove Image</button>
