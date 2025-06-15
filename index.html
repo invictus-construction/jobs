@@ -589,67 +589,88 @@
     }
 
     function renderTable(data, type, columns) {
-      const total = data.reduce((sum, row) => sum + (parseFloat(row.cost) || 0), 0).toFixed(2);
-      return `
-        <table class="min-w-full bg-white rounded border border-gray-300">
-          <thead>
-            <tr class="bg-gray-100">
-              ${columns.map(col => `<th class="p-2 text-left border-b">${col.label}</th>`).join('')}
-              <th class="p-2 text-left border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="${type}-table-body">
-            ${data.map(row => `
-              <tr>
-                ${columns.map(col => `
-                  <td class="p-2 border-b">
-                    ${col.type === 'select' ? `
-                      <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)">
-                        <option value="">Select</option>
-                        ${col.options.map(opt => `
-                          <option value="${opt.value}" style="background-color: ${opt.color}" ${row[col.key] === opt.value ? 'selected' : ''}>${opt.value}</option>
-                        `).join('')}
-                      </select>
-                    ` : col.type === 'date' ? `
-                      <input type="date" value="${row[col.key]}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)" />
-                    ` : `
-                      <div contenteditable="true" class="editable p-1" onblur="updateRow('${type}', '${row.id}', '${col.key}', this.innerText)">${row[col.key]}</div>
-                    `}
-                  </td>
-                `).join('')}
-                <td class="p-2 border-b">
-                  <button onclick="deleteRow('${type}', '${row.id}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
-                </td>
-              </tr>
-            `).join('')}
-            <tr>
-              ${columns.map(col => `
-                <td class="p-2 border-b">
-                  ${col.type === 'select' ? `
-                    <select id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300">
-                      <option value="">Select</option>
-                      ${col.options.map(opt => `
-                        <option value="${opt.value}" style="background-color: ${opt.color}">${opt.value}</option>
-                      `).join('')}
-                    </select>
-                  ` : `
-                    <input type="${col.type === 'date' ? 'date' : 'text'}" id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300" />
-                  `}
-                </td>
-              `).join('')}
+  const total = data.reduce((sum, row) => sum + (parseFloat(row.cost) || 0), 0).toFixed(2);
+
+  // Subtotals by method
+  const methodSums = {};
+  data.forEach(row => {
+    const method = row.method || 'Other';
+    const cost = parseFloat(row.cost) || 0;
+    if (!methodSums[method]) methodSums[method] = 0;
+    methodSums[method] += cost;
+  });
+
+  let subtotalsHTML = Object.entries(methodSums).map(([method, value]) => `
+    <tr>
+      <td colspan="${columns.length - 1}" class="p-2 border-b text-right font-medium text-sm">Subtotal (${method})</td>
+      <td class="p-2 border-b font-medium text-sm">$${value.toFixed(2)}</td>
+      <td class="p-2 border-b"></td>
+    </tr>
+  `).join('');
+
+  return `
+    <table class="min-w-full bg-white rounded border border-gray-300">
+      <thead>
+        <tr class="bg-gray-100">
+          ${columns.map(col => `<th class="p-2 text-left border-b">${col.label}</th>`).join('')}
+          <th class="p-2 text-left border-b">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="${type}-table-body">
+        ${data.map(row => `
+          <tr>
+            ${columns.map(col => `
               <td class="p-2 border-b">
-                <button onclick="addRow('${type}')" class="p-1 bg-blue-700 rounded text-white">Add</button>
+                ${col.type === 'select' ? `
+                  <select class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)">
+                    <option value="">Select</option>
+                    ${col.options.map(opt => `
+                      <option value="${opt.value}" style="background-color: ${opt.color}" ${row[col.key] === opt.value ? 'selected' : ''}>${opt.value}</option>
+                    `).join('')}
+                  </select>
+                ` : col.type === 'date' ? `
+                  <input type="date" value="${row[col.key]}" class="p-1 bg-white rounded w-full border border-gray-300" onchange="updateRow('${type}', '${row.id}', '${col.key}', this.value)" />
+                ` : `
+                  <div contenteditable="true" class="editable p-1" onblur="updateRow('${type}', '${row.id}', '${col.key}', this.innerText)">${row[col.key]}</div>
+                `}
               </td>
-            </tr>
-            <tr>
-              <td class="p-2 border-b font-bold" colspan="${columns.length - 1}">Total</td>
-              <td class="p-2 border-b font-bold">$${total}</td>
-              <td class="p-2 border-b"></td>
-            </tr>
-          </tbody>
-        </table>
-      `;
-    }
+            `).join('')}
+            <td class="p-2 border-b">
+              <button onclick="deleteRow('${type}', '${row.id}')" class="p-1 bg-red-600 rounded text-white">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+        <tr>
+          ${columns.map(col => `
+            <td class="p-2 border-b">
+              ${col.type === 'select' ? `
+                <select id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300">
+                  <option value="">Select</option>
+                  ${col.options.map(opt => `
+                    <option value="${opt.value}" style="background-color: ${opt.color}">${opt.value}</option>
+                  `).join('')}
+                </select>
+              ` : `
+                <input type="${col.type === 'date' ? 'date' : 'text'}" id="new-${type}-${col.key}" class="p-1 bg-white rounded w-full border border-gray-300" />
+              `}
+            </td>
+          `).join('')}
+          <td class="p-2 border-b">
+            <button onclick="addRow('${type}')" class="p-1 bg-blue-700 rounded text-white">Add</button>
+          </td>
+        </tr>
+
+        ${subtotalsHTML}
+
+        <tr>
+          <td class="p-2 border-b font-bold" colspan="${columns.length - 1}">Total</td>
+          <td class="p-2 border-b font-bold">$${total}</td>
+          <td class="p-2 border-b"></td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
 
     function renderDynamicTable(data, columns, type) {
       return `
